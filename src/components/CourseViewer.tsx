@@ -13,14 +13,20 @@ import WikiImage from "@/app/components/WikiImage";
 import { buildWikiImageQueryCandidates } from "@/lib/wikiQuery";
 import WebNotes from "@/components/WebNotes";
 import { buildFinalTestFromCourse } from "@/lib/finalTest";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function CourseViewer({
   course,
   userPrompt,
+  hideHeader = false,
 }: {
   course: Course;
   userPrompt?: string;
+  hideHeader?: boolean;
 }) {
+  const { user, signOutUser } = useAuth();
+  const router = useRouter();
   // UI State
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
@@ -415,25 +421,46 @@ export default function CourseViewer({
   return (
     <div className="min-h-screen bg-white font-sans text-[#1A1A1A] pb-28">
       {/* --- TOP NAVIGATION --- */}
-      <header className="flex items-center justify-between px-6 py-4 border-b bg-white sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="text-2xl font-serif font-bold tracking-tight">Currio</Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link 
-            href="/signup" 
-            className="px-5 py-2 text-sm font-medium bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] rounded-full transition-colors"
-          >
-            Sign Up
-          </Link>
-          <Link 
-            href="/login" 
-            className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-full text-[#1A1A1A] hover:bg-gray-50 transition-colors"
-          >
-            Log In
-          </Link>
-        </div>
-      </header>
+      {!hideHeader && (
+        <header className="flex items-center justify-between px-6 py-4 border-b bg-white sticky top-0 z-50">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="text-2xl font-serif font-bold tracking-tight">Currio</Link>
+          </div>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await signOutUser();
+                    router.refresh();
+                  } catch (e) {
+                    console.error("Logout error:", e);
+                  }
+                }}
+                className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link 
+                  href="/signup" 
+                  className="px-5 py-2 text-sm font-medium bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] rounded-full transition-colors"
+                >
+                  Sign Up
+                </Link>
+                <Link 
+                  href="/login" 
+                  className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-full text-[#1A1A1A] hover:bg-gray-50 transition-colors"
+                >
+                  Log In
+                </Link>
+              </>
+            )}
+          </div>
+        </header>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="flex flex-col lg:flex-row gap-12">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import Link from "next/link";
@@ -23,7 +23,7 @@ function slugify(text: string) {
 }
 
 export default function Home() {
-  const { user, loading } = useAuth()
+  const { user, loading, signOutUser } = useAuth()
   const router = useRouter()
   
   // UI States
@@ -37,6 +37,7 @@ export default function Home() {
 
   // --- AI HOOK ---
   const [courseId, setCourseId] = useState<string | null>(null);
+  const courseIdRef = useRef<string | null>(null);
 
   const { object, submit, isLoading } = useObject({
     api: "/api/generate",
@@ -45,13 +46,16 @@ export default function Home() {
       const res = await fetch(input, init);
       if (res.ok) {
         const id = res.headers.get("x-course-id");
-        if (id) setCourseId(id);
+        if (id) {
+          courseIdRef.current = id;
+          setCourseId(id);
+        }
       }
       return res;
     },
     onFinish: ({ object }) => {
       // MAGIC: Automatically update URL to the permanent public link without reload
-      const id = courseId;
+      const id = courseIdRef.current ?? courseId;
       if (id && object?.courseTitle) {
         const slug = slugify(object.courseTitle);
         // Use Next.js router to update navigation so the app state and router pathname stay in sync
@@ -61,6 +65,52 @@ export default function Home() {
       }
     },
   })
+
+  const header = useMemo(
+    () => (
+      <div className="w-full flex items-center justify-between px-4 md:px-8 py-6">
+        <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">
+          Currio
+        </Link>
+        <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-3">
+            {user ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await signOutUser();
+                    router.refresh();
+                  } catch (e) {
+                    console.error("Logout error:", e);
+                  }
+                }}
+                className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
+              >
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="rounded-full bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] px-5 py-2 text-sm font-medium transition-colors"
+                >
+                  Sign Up
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
+                >
+                  Log In
+                </Link>
+              </>
+            )}
+          </nav>
+        </div>
+      </div>
+    ),
+    [router, signOutUser, user]
+  );
 
   // --- HANDLER ---
   const handleGenerate = () => {
@@ -93,9 +143,8 @@ export default function Home() {
   }, [isAddMenuOpen])
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard')
-    }
+    // Stay on `/` after authentication (no dashboard redirect).
+    // We keep the home page available to both authenticated and unauthenticated users.
   }, [user, loading, router])
 
   // Show loading while checking authentication
@@ -107,10 +156,7 @@ export default function Home() {
     )
   }
 
-  // If user is authenticated, redirect to dashboard
-  if (user) {
-    return null
-  }
+  // If user is authenticated, we still show the home page; UI will adapt (Logout vs Sign in/up)
 
   // --- CONDITIONAL RENDERING ---
   // If the AI has started generating (object exists) or is loading, swap the view
@@ -122,31 +168,20 @@ export default function Home() {
       ...(courseId ? { id: courseId } : {}),
     } as unknown) as Course;
 
-    return <CourseViewer course={enrichedCourse} />
+    return (
+      <div className="min-h-screen bg-[#fcfaf8] flex flex-col">
+        {header}
+        <main className="flex-1">
+          <CourseViewer course={enrichedCourse} userPrompt={input} hideHeader />
+        </main>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-[#fcfaf8] flex flex-col">
       {/* Top bar: Brand + Auth - Fixed at top */}
-      <div className="w-full flex items-center justify-between px-4 md:px-8 py-6">
-        <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">Currio</Link>
-        <div className="flex items-center gap-2">
-              <nav className="flex items-center gap-3">
-                <Link
-                  href="/signup"
-                  className="rounded-full bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] px-5 py-2 text-sm font-medium transition-colors"
-                >
-                  Sign Up
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
-                >
-                  Log In
-                </Link>
-              </nav>
-        </div>
-      </div>
+      {header}
 
       <main className="flex-1 px-6 pb-16">
 

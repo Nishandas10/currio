@@ -4,6 +4,7 @@ import {
   getAuth,
   setPersistence,
 } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -45,3 +46,5 @@ export const firebaseAuth = (() => {
   }
   return auth;
 })();
+
+export const firebaseDb = getFirestore(firebaseApp);

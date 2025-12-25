@@ -11,6 +11,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase";
+import { ensureUserProfileDoc } from "@/lib/users";
 
 type AuthContextValue = {
   user: User | null;
@@ -76,7 +77,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       registerWithEmail: async (email, password) => {
         try {
-          await createUserWithEmailAndPassword(firebaseAuth, email, password);
+          const cred = await createUserWithEmailAndPassword(
+            firebaseAuth,
+            email,
+            password
+          );
+          // Create the Firestore profile doc for new users.
+          try {
+            await ensureUserProfileDoc(cred.user);
+          } catch (err) {
+            // Don't block account creation on Firestore rules/config.
+            console.warn("Failed to create user profile doc:", err);
+          }
         } catch (e) {
           throw new Error(mapFirebaseError(e));
         }
@@ -85,7 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const provider = new GoogleAuthProvider();
           provider.setCustomParameters({ prompt: "select_account" });
-          await signInWithPopup(firebaseAuth, provider);
+          const cred = await signInWithPopup(firebaseAuth, provider);
+          // Ensure doc exists for Google sign-in users as well.
+          try {
+            await ensureUserProfileDoc(cred.user);
+          } catch (err) {
+            // Don't block sign-in if Firestore denies writes.
+            console.warn("Failed to create user profile doc:", err);
+          }
         } catch (e) {
           throw new Error(mapFirebaseError(e));
         }

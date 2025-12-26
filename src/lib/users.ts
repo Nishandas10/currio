@@ -1,5 +1,12 @@
 import type { User } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  arrayUnion,
+  doc,
+  increment,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
 
 export type UserProfileDoc = {
@@ -37,4 +44,21 @@ export async function ensureUserProfileDoc(user: User) {
 
   // merge:true makes this safe to call multiple times.
   await setDoc(ref, data, { merge: true });
+}
+
+/**
+ * Denormalized updates after creating a course:
+ * - add courseId to `users/{uid}.courses`
+ * - increment `users/{uid}.coursesCreated`
+ */
+export async function addCourseToUser(params: {
+  uid: string;
+  courseId: string;
+}) {
+  const ref = doc(firebaseDb, "users", params.uid);
+  await updateDoc(ref, {
+    courses: arrayUnion(params.courseId),
+    coursesCreated: increment(1),
+    updatedAt: serverTimestamp(),
+  });
 }

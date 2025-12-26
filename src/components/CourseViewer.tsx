@@ -15,6 +15,8 @@ import WebNotes from "@/components/WebNotes";
 import { buildFinalTestFromCourse } from "@/lib/finalTest";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { uploadPodcastAudio } from "@/lib/storage";
+import { updateLessonAssetUrls } from "@/lib/courses";
 
 export default function CourseViewer({
   course,
@@ -41,8 +43,14 @@ export default function CourseViewer({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
   
-  // Image generation state
-  const [courseImage, setCourseImage] = useState<string | null>(course?.courseImage ?? null);
+  const courseThumbnail = (course as Course & { courseThumbnail?: string })
+    .courseThumbnail;
+
+  // Extract sources from course metadata if available (for authenticated users)
+  const initialSources = (course as Course & { sources?: WebSource[] }).sources ?? null;
+
+  // Image state - course thumbnail URL (stored separately from per-section wiki imageUrl)
+  const [courseImageUrl, setCourseImageUrl] = useState<string | null>(courseThumbnail ?? null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -53,7 +61,7 @@ export default function CourseViewer({
     snippet?: string;
     displayLink?: string;
   };
-  const [sources, setSources] = useState<WebSource[]>([]);
+  const [sources, setSources] = useState<WebSource[]>(initialSources ?? []);
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [sourcesError, setSourcesError] = useState<string | null>(null);
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
@@ -65,21 +73,42 @@ export default function CourseViewer({
   const mainContentRef = useRef<HTMLDivElement | null>(null);
 
   // Keep local state in sync when navigating between courses.
+  // IMPORTANT: while streaming, `course` object changes frequently. We only want to
+  // adopt `course.courseThumbnail` when it becomes available (or changes), not reset to null.
   useEffect(() => {
-    setCourseImage(course?.courseImage ?? null);
+    const next = courseThumbnail ?? null;
+    setCourseImageUrl((prev) => {
+      if (!next) return prev; // never clobber a local URL with null/undefined
+      if (prev === next) return prev;
+      return next;
+    });
     setImageError(false);
     setIsGeneratingImage(false);
-  }, [course?.courseImage]);
+  }, [courseThumbnail]);
+
+  // Sync sources from prop if it changes (e.g. becomes available during streaming)
+  useEffect(() => {
+    if (initialSources && initialSources.length > 0) {
+      setSources(initialSources);
+    }
+  }, [initialSources]);
 
   // Fetch web sources (best-effort). Only works once we have a stable courseId.
+  // For authenticated users with initial sources, skip the fetch.
   useEffect(() => {
     if (!courseId) return;
+    if (initialSources && initialSources.length > 0) return; // Already have sources
+    if (user) return; // Authenticated users get sources via course metadata
+    
     let cancelled = false;
 
     setSourcesLoading(true);
     setSourcesError(null);
 
-    fetch(`/api/courses/sources?courseId=${encodeURIComponent(courseId)}`, {
+    const url = new URL("/api/courses/sources", window.location.origin);
+    url.searchParams.set("courseId", courseId);
+
+    fetch(url.toString(), {
       method: "GET",
       headers: { accept: "application/json" },
     })
@@ -105,32 +134,44 @@ export default function CourseViewer({
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [courseId, user, initialSources]);
 
   // Generate + persist course image only when missing.
+  // For authenticated users, the course page kicks this off in parallel with streaming,
+  // so we DON'T start ensure-thumbnail here (it can race and overwrite UI state).
   useEffect(() => {
     if (!courseId) return;
+    if (courseImageUrl) return; // Already have an image URL
+    if (user) return; // Skip for authenticated users (handled by course page)
+    if (isGeneratingImage || imageError) return;
 
-    if (!courseImage && !isGeneratingImage && !imageError) {
-      setIsGeneratingImage(true);
+    setIsGeneratingImage(true);
 
-      fetch("/api/courses/ensure-thumbnail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
+    fetch("/api/courses/ensure-thumbnail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`ensure-thumbnail failed: ${res.status}`);
+        }
+        return res.json();
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.success && typeof data?.courseImage === "string" && data.courseImage) {
-            setCourseImage(data.courseImage);
-          } else {
-            setImageError(true);
-          }
-        })
-        .catch(() => setImageError(true))
-        .finally(() => setIsGeneratingImage(false));
-    }
-  }, [courseId, courseImage, isGeneratingImage, imageError]);
+      .then((data) => {
+        if (data?.success && typeof data?.courseImage === "string" && data.courseImage) {
+          // Guest flow: use base64 directly (legacy behavior)
+          setCourseImageUrl(`data:image/png;base64,${data.courseImage}`);
+        } else {
+          setImageError(true);
+        }
+      })
+      .catch((e) => {
+        console.warn("Failed to fetch thumbnail:", e);
+        setImageError(true);
+      })
+      .finally(() => setIsGeneratingImage(false));
+  }, [courseId, courseImageUrl, isGeneratingImage, imageError, user]);
 
   useEffect(() => {
     const nav = navRef.current;
@@ -400,6 +441,33 @@ export default function CourseViewer({
       
       setAudioUrl(url);
       setAudioMimeType(contentType);
+
+      // Persist podcast audio to Firebase Storage + store URL in Firestore (best-effort).
+      if (user && courseId) {
+        void (async () => {
+          try {
+            const { url: publicUrl } = await uploadPodcastAudio({
+              userId: user.uid,
+              courseId,
+              moduleId: currentSection.id,
+              bytes: buf,
+              mimeType: contentType,
+            });
+
+            // Map active section to a flattened lesson index (module sections order).
+            // Now we use direct module and section indices instead of flat index.
+
+            await updateLessonAssetUrls({
+              courseId,
+              moduleIndex: activeModuleIdx,
+              sectionIndex: activeSectionIdx,
+              audioUrl: publicUrl,
+            });
+          } catch (e) {
+            console.warn("Failed to upload podcast audio to Storage:", e);
+          }
+        })();
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to generate audio";
       setAudioError(msg);
@@ -475,9 +543,9 @@ export default function CourseViewer({
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
                       <span className="text-sm text-gray-500">Generating image...</span>
                     </div>
-                  ) : courseImage && !imageError ? (
+                  ) : courseImageUrl && !imageError ? (
                     <Image 
-                      src={`data:image/png;base64,${courseImage}`}
+                      src={courseImageUrl}
                       alt={course.courseTitle || "Course thumbnail"}
                       className="w-full h-full object-cover"
                       width={1024}
@@ -993,7 +1061,7 @@ export default function CourseViewer({
         audioUrl={audioUrl}
         audioMimeType={audioMimeType}
         title={currentSection?.title}
-        thumbnail={courseImage}
+        thumbnail={courseImageUrl}
         isLoading={isGeneratingAudio}
         onPrevious={goToPreviousSection}
         onNext={goToNextSection}

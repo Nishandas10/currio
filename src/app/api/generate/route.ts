@@ -1,7 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { streamObject } from "ai";
 import { courseSchema } from "@/lib/schema";
-import { Redis } from "@upstash/redis";
 import { customAlphabet } from "nanoid";
 import {
   COURSE_GENERATION_SYSTEM_PROMPT,
@@ -11,7 +10,6 @@ import {
 // EDGE RUNTIME: Critical for speed and long streaming timeouts
 export const runtime = "edge";
 
-const redis = Redis.fromEnv();
 const generateId = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   10
@@ -167,112 +165,169 @@ type Source = {
 };
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as Partial<{
-    prompt: string;
-    sources: Source[];
-  }>;
-
-  const prompt = (body.prompt ?? "").trim();
-  const sources = Array.isArray(body.sources) ? body.sources : [];
-
-  if (!prompt) {
-    return new Response(JSON.stringify({ error: "Missing 'prompt'" }), {
-      status: 400,
-      headers: { "content-type": "application/json" },
-    });
-  }
-
-  // Generate a unique ID for this course immediately
-  const courseId = generateId();
-
-  // Persist minimal metadata immediately so other endpoints (like thumbnail) can work
-  // while the course is still streaming.
-  await redis.set(`course:meta:${courseId}`, {
-    prompt,
-    searchQuery: prompt,
-  });
-
-  // 1. Context Preparation (Simple concatenation for text sources)
-  // For production, use Jina.ai for web links or pdf-parse for docs
-  const contextBlock = sources
-    .filter((s): s is Source => !!s && typeof s.content === "string")
-    .map((s: Source, i: number) => {
-      const type =
-        typeof s.type === "string" && s.type.trim() ? s.type.trim() : "unknown";
-      const content = s.content.trim();
-      return `[Source ${i + 1} | ${type}]\n${content}`;
-    })
-    .join("\n\n---\n\n");
-
-  // 1b. Explicit web search FIRST, then generate grounded on these sources.
-  // Required flow:
-  // 1) exact user prompt -> Google Search
-  // 2) collect sources + metadata
-  // 3) generate course using those sources
-  let searchResults: WebSearchResult[] = [];
   try {
-    const search = await googleWebSearch(prompt, { num: 6 });
-    searchResults = search.results;
-  } catch (e) {
-    // If search fails (missing env, quota, etc.), we still generate using any provided sources.
-    console.warn("googleWebSearch failed:", e);
-  }
+    // If the client indicates an authenticated flow, we skip Redis persistence.
+    // We still stream the object back to the client.
+    const skipRedis =
+      (req.headers.get("x-skip-redis") ?? "").toLowerCase() === "1";
 
-  // Persist search metadata so other endpoints / the UI can display citations later.
-  await redis.set(`course:search:${courseId}`, {
-    query: prompt,
-    results: searchResults,
-  });
+    // Redis is guest-only. Avoid constructing it (and avoid any Redis calls) in authed flow.
+    const redis = skipRedis
+      ? null
+      : (await import("@upstash/redis")).Redis.fromEnv();
 
-  const webSearchBlock = formatSearchResultsForPrompt(searchResults);
-  const combinedContext = [
-    contextBlock ? `USER-PROVIDED CONTEXT\n${contextBlock}` : "",
-    `GOOGLE SEARCH RESULTS (authoritative; cite/ground claims using these)\n${webSearchBlock}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n---\n\n");
+    const body = (await req.json()) as Partial<{
+      prompt: string;
+      sources: Source[];
+    }>;
 
-  // 2. The AI Stream
-  const result = await streamObject({
-    model: google("gemini-2.5-flash-lite"), // Switch to 'gemini-3-flash' if available
-    schema: courseSchema,
-    system: COURSE_GENERATION_SYSTEM_PROMPT,
-    prompt: buildCoursePrompt(prompt, combinedContext),
-    // 3. ON FINISH: Save to Redis for permanent access
-    onFinish: async ({ object }) => {
-      if (object) {
-        // Validate and fix quiz data before saving
-        const validated = validateAndFixQuizData(object);
+    const prompt = (body.prompt ?? "").trim();
+    const sources = Array.isArray(body.sources) ? body.sources : [];
 
-        // If the client already generated/persisted a thumbnail during streaming,
-        // don't overwrite it with a potentially different image.
-        const existing = (await redis.get(`course:${courseId}`)) as Record<
-          string,
-          unknown
-        > | null;
-        const existingImage =
-          typeof existing?.courseImage === "string"
-            ? (existing.courseImage as string)
-            : "";
+    if (!prompt) {
+      return new Response(JSON.stringify({ error: "Missing 'prompt'" }), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
+    }
 
-        // IMPORTANT: Do not generate a thumbnail here.
-        // Thumbnails should only be generated during streaming via /api/courses/ensure-thumbnail.
-        const courseImage = existingImage || null;
-        // Attach id so the public course page and client components have a stable identifier.
-        // This enables persistence of additional fields (like courseImage) without guessing.
-        const courseWithId = {
-          ...(validated as Record<string, unknown>),
-          id: courseId,
-          ...(courseImage ? { courseImage } : {}),
-        };
-        // Expire after 7 days to save space (Guest Policy)
-        await redis.set(`course:${courseId}`, courseWithId);
+    // Generate a unique ID for this course immediately
+    const providedId = req.headers.get("x-course-id");
+    const courseId =
+      providedId && providedId.trim().length > 0 ? providedId : generateId();
+
+    // Persist minimal metadata immediately so other endpoints (like thumbnail) can work
+    // while the course is still streaming.
+    if (!skipRedis) {
+      await redis!.set(`course:meta:${courseId}`, {
+        prompt,
+        searchQuery: prompt,
+      });
+    }
+
+    // 1. Context Preparation (Simple concatenation for text sources)
+    // For production, use Jina.ai for web links or pdf-parse for docs
+    const contextBlock = sources
+      .filter((s): s is Source => !!s && typeof s.content === "string")
+      .map((s: Source, i: number) => {
+        const type =
+          typeof s.type === "string" && s.type.trim()
+            ? s.type.trim()
+            : "unknown";
+        const content = s.content.trim();
+        return `[Source ${i + 1} | ${type}]\n${content}`;
+      })
+      .join("\n\n---\n\n");
+
+    // 1b. Explicit web search FIRST, then generate grounded on these sources.
+    // Required flow:
+    // 1) exact user prompt -> Google Search
+    // 2) collect sources + metadata
+    // 3) generate course using those sources
+    let searchResults: WebSearchResult[] = [];
+
+    // Only perform search if we don't have explicit sources provided by the user
+    // OR if we want to augment them. Here we always augment.
+    try {
+      const search = await googleWebSearch(prompt, { num: 6 });
+      searchResults = search.results;
+    } catch (e) {
+      // If search fails (missing env, quota, etc.), we still generate using any provided sources.
+      console.warn("googleWebSearch failed:", e);
+    }
+
+    // Persist search metadata so other endpoints / the UI can display citations later.
+    if (!skipRedis) {
+      await redis!.set(`course:search:${courseId}`, {
+        query: prompt,
+        results: searchResults,
+      });
+    }
+
+    const webSearchBlock = formatSearchResultsForPrompt(searchResults);
+    const combinedContext = [
+      contextBlock ? `USER-PROVIDED CONTEXT\n${contextBlock}` : "",
+      `GOOGLE SEARCH RESULTS (authoritative; cite/ground claims using these)\n${webSearchBlock}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n---\n\n");
+
+    // 2. The AI Stream
+    const result = await streamObject({
+      model: google("gemini-2.5-flash-lite"), // Switch to 'gemini-3-flash' if available
+      schema: courseSchema,
+      system: COURSE_GENERATION_SYSTEM_PROMPT,
+      prompt: buildCoursePrompt(prompt, combinedContext),
+      // 3. ON FINISH: Save to Redis for permanent access
+      onFinish: async ({ object }) => {
+        if (object) {
+          // Validate and fix quiz data before saving
+          const validated = validateAndFixQuizData(object);
+
+          // If the client already generated/persisted a thumbnail during streaming,
+          // don't overwrite it with a potentially different image.
+          const existing = !skipRedis
+            ? ((await redis!.get(`course:${courseId}`)) as Record<
+                string,
+                unknown
+              > | null)
+            : null;
+          const existingImage =
+            typeof existing?.courseImage === "string"
+              ? (existing.courseImage as string)
+              : "";
+
+          // IMPORTANT: Do not generate a thumbnail here.
+          // Thumbnails should only be generated during streaming via /api/courses/ensure-thumbnail.
+          const courseImage = existingImage || null;
+          // Attach id so the public course page and client components have a stable identifier.
+          // This enables persistence of additional fields (like courseImage) without guessing.
+          const courseWithId = {
+            ...(validated as Record<string, unknown>),
+            id: courseId,
+            ...(courseImage ? { courseImage } : {}),
+          };
+          // Expire after 7 days to save space (Guest Policy)
+          if (!skipRedis) {
+            await redis!.set(`course:${courseId}`, courseWithId);
+          }
+        }
+      },
+    });
+
+    // 4. Return the stream + The Course ID in headers
+    // NOTE: Edge runtime headers must be valid ByteString (latin1). Search results can
+    // include unicode characters (e.g., en-dash) which will crash if included in headers.
+    // SOLUTION: Base64 encode the JSON string to ensure it's safe for headers.
+    const headers: Record<string, string> = {
+      "x-course-id": courseId,
+    };
+
+    if (searchResults.length > 0) {
+      try {
+        const jsonStr = JSON.stringify(searchResults);
+        // Buffer is available in Node.js and Edge Runtime (usually)
+        // If Buffer is missing in some strict Edge envs, use btoa (but btoa handles latin1 only).
+        // Safe way for unicode in Edge: Buffer.from(str).toString('base64')
+        const b64 = Buffer.from(jsonStr).toString("base64");
+        headers["x-sources-b64"] = b64;
+      } catch (e) {
+        console.warn("Failed to encode sources for header:", e);
       }
-    },
-  });
+    }
 
-  // 4. Return the stream + The Course ID in headers
-  return result.toTextStreamResponse({
-    headers: { "x-course-id": courseId },
-  });
+    return result.toTextStreamResponse({ headers });
+  } catch (error) {
+    console.error("Error in /api/generate:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to generate course",
+        details: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  }
 }

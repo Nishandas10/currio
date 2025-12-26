@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function courseDoc(courseId) {
+      return firestore.get(/databases/(default)/documents/courses/$(courseId));
+    }
+
+    function isPublic(courseId) {
+      return courseDoc(courseId).data.isPublic == true;
+    }
+
+    // Course thumbnail image
+    // Path: images/{userId}/{courseId}/img
+    match /images/{userId}/{courseId}/img {
+      // Allow user to write to their own folder
+      // Read: owner or if course is public
+      allow write: if signedIn() && request.auth.uid == userId;
+      allow read: if (signedIn() && request.auth.uid == userId) || isPublic(courseId);
+    }
+
+    // Lesson podcast audio
+    // Path: podcasts/{userId}/{courseId}/{moduleId}/podcast
+    match /podcasts/{userId}/{courseId}/{moduleId}/podcast {
+      allow write: if signedIn() && request.auth.uid == userId;
+      allow read: if (signedIn() && request.auth.uid == userId) || isPublic(courseId);
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

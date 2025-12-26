@@ -1,5 +1,3 @@
-import { Redis } from "@upstash/redis";
-
 export const runtime = "edge";
 
 type WebSearchResult = {
@@ -22,11 +20,26 @@ function json(data: unknown, init?: ResponseInit) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const courseId = (searchParams.get("courseId") ?? "").trim();
+  const authed = (searchParams.get("authed") ?? "").trim() === "1";
 
   if (!courseId) {
     return json({ success: false, error: "Missing courseId" }, { status: 400 });
   }
 
+  // Authenticated users should not touch Redis.
+  // Currently, only the guest flow persists search metadata in Redis.
+  // For authed users we return an empty result set (UI should treat it as best-effort).
+  if (authed) {
+    return json({
+      success: true,
+      courseId,
+      query: null,
+      results: [],
+      from: "none",
+    });
+  }
+
+  const { Redis } = await import("@upstash/redis");
   const redis = Redis.fromEnv();
 
   // Stored by /api/generate during streaming.
@@ -57,5 +70,6 @@ export async function GET(req: Request) {
     courseId,
     query: raw?.query ?? null,
     results: safeResults,
+    from: "redis",
   });
 }

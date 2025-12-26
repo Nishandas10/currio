@@ -42,8 +42,8 @@ export default function Home() {
   const { object, submit, isLoading } = useObject({
     api: "/api/generate",
     schema: courseSchema,
-    fetch: async (input, init) => {
-      const res = await fetch(input, init);
+    fetch: async (req, init) => {
+      const res = await fetch(req, init);
       if (res.ok) {
         const id = res.headers.get("x-course-id");
         if (id) {
@@ -58,7 +58,6 @@ export default function Home() {
       const id = courseIdRef.current ?? courseId;
       if (id && object?.courseTitle) {
         const slug = slugify(object.courseTitle);
-        // Use Next.js router to update navigation so the app state and router pathname stay in sync
         router.replace(`/course/${slug}-${id}`);
       } else if (id) {
         router.replace(`/course/${id}`);
@@ -115,7 +114,18 @@ export default function Home() {
   // --- HANDLER ---
   const handleGenerate = () => {
     if (!input.trim()) return
-    // Trigger the AI generation
+
+    if (user) {
+      // Authenticated flow: Redirect immediately to course page to start generation there.
+      // We generate a client-side ID (UUID) to reserve the slot.
+      const newId = crypto.randomUUID();
+      const params = new URLSearchParams();
+      params.set("prompt", input);
+      router.push(`/course/${newId}?${params.toString()}`);
+      return;
+    }
+
+    // Trigger the AI generation (Unauthenticated flow)
     submit({ prompt: input, sources: sources })
   }
 

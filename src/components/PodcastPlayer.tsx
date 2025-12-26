@@ -227,7 +227,7 @@ export default function PodcastPlayer({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={
-                    thumbnail.startsWith("data:")
+                    thumbnail.startsWith("data:") || thumbnail.startsWith("http")
                       ? thumbnail
                       : `data:image/png;base64,${thumbnail}`
                   }

@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------
+    // USERS
+    // users/{uid}
+    // ---------------------------
+    match /users/{userId} {
+      // Only the signed-in user can read/write their own profile
+      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+
+      // Optional: prevent deletes (recommended)
+      allow delete: if false;
+    }
+
+    // ---------------------------
+    // COURSES
+    // courses/{courseId}
+    // ---------------------------
+    match /courses/{courseId} {
+
+      function signedIn() {
+        return request.auth != null;
+      }
+
+      // For existing docs (update), resource.data exists
+      function isOwner() {
+        return signedIn() && resource.data.userId == request.auth.uid;
+      }
+
+      // READ:
+      // - Allow if doc doesn't exist yet (race condition during creation)
+      // - Allow if doc is public
+      // - Allow if user is authenticated and is the owner
+      allow get, list: if resource == null
+                       || resource.data.isPublic == true
+                       || (request.auth != null && resource.data.userId == request.auth.uid);
+
+      // CREATE:
+      // Only signed-in users can create, and must set themselves as owner
+      allow create: if signedIn()
+                    && request.resource.data.userId == request.auth.uid;
+
+      // UPDATE:
+      // Only the owner can update
+      // Allow update if doc exists and user is owner, OR if doc doesn't exist yet but user is creating it
+      allow update: if (resource != null && isOwner())
+                    || (resource == null && signedIn() && request.resource.data.userId == request.auth.uid);
+
+      // Optional: prevent deletes (recommended)
+      allow delete: if false;
+    }
+  }
+}

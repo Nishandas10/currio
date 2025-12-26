@@ -6,10 +6,8 @@ export const courseSchema = z.object({
   courseDescription: z
     .string()
     .describe("Brief summary of what the user will learn"),
-  // Optional: persisted thumbnail for the course.
-  // Stored as a base64-encoded PNG (no data: prefix) returned by /api/generate-image.
-  // This prevents regenerating an image on every page reload.
-  courseImage: z.string().optional(),
+  // NOTE: Course thumbnail is stored in Firestore course metadata (`courses/{courseId}.courseThumbnail`).
+  // It is intentionally NOT part of the AI-generated schema to avoid collisions with per-section Wikimedia images.
   finalTest: z
     .object({
       quiz: z

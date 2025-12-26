@@ -27,7 +27,7 @@ export default function CourseViewer({
   userPrompt?: string;
   hideHeader?: boolean;
 }) {
-  const { user, signOutUser } = useAuth();
+  const { user, loading: authLoading, signOutUser } = useAuth();
   const router = useRouter();
   // UI State
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
@@ -98,6 +98,7 @@ export default function CourseViewer({
   useEffect(() => {
     if (!courseId) return;
     if (initialSources && initialSources.length > 0) return; // Already have sources
+    if (authLoading) return; // Wait for auth to resolve
     if (user) return; // Authenticated users get sources via course metadata
     
     let cancelled = false;
@@ -112,7 +113,10 @@ export default function CourseViewer({
       method: "GET",
       headers: { accept: "application/json" },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (cancelled) return;
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
         if (data?.success && Array.isArray(data?.results)) {
@@ -133,8 +137,11 @@ export default function CourseViewer({
 
     return () => {
       cancelled = true;
+      // If we unmount or deps change, ensure we don't leave loading state stuck true
+      // But we can't call setSourcesLoading here if unmounted.
+      // The next effect run will reset it if needed, or we rely on initial state.
     };
-  }, [courseId, user, initialSources]);
+  }, [courseId, user, authLoading, initialSources]);
 
   // Generate + persist course image only when missing.
   // For authenticated users, the course page kicks this off in parallel with streaming,
@@ -142,6 +149,7 @@ export default function CourseViewer({
   useEffect(() => {
     if (!courseId) return;
     if (courseImageUrl) return; // Already have an image URL
+    if (authLoading) return; // Wait for auth to resolve
     if (user) return; // Skip for authenticated users (handled by course page)
     if (isGeneratingImage || imageError) return;
 
@@ -171,7 +179,7 @@ export default function CourseViewer({
         setImageError(true);
       })
       .finally(() => setIsGeneratingImage(false));
-  }, [courseId, courseImageUrl, isGeneratingImage, imageError, user]);
+  }, [courseId, courseImageUrl, isGeneratingImage, imageError, user, authLoading]);
 
   useEffect(() => {
     const nav = navRef.current;

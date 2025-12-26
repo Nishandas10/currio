@@ -116,13 +116,18 @@ export default function CoursePage({ params }: PageProps) {
     }
   });
 
-  // Kick off thumbnail generation ASAP (in parallel with streaming), once we have a title.
+  // Kick off thumbnail generation ASAP (in parallel with streaming), once we have a title and description.
   useEffect(() => {
     if (!user) return;
     if (uploadedCourseThumbnail) return;
     if (imageStartedRef.current) return;
+    
     const title = (object as Course | undefined)?.courseTitle;
+    const description = (object as Course | undefined)?.courseDescription;
+    
+    // Wait for both title and description to be available for better image context
     if (!title || title.trim().length < 3) return;
+    if (!description || description.trim().length < 10) return;
 
     imageStartedRef.current = true;
 
@@ -131,7 +136,7 @@ export default function CoursePage({ params }: PageProps) {
         const imageRes = await fetch("/api/generate-image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: title }),
+          body: JSON.stringify({ prompt: title, description }),
         });
 
         if (!imageRes.ok) return;

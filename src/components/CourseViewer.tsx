@@ -392,10 +392,20 @@ export default function CourseViewer({
   useEffect(() => {
     setAudioError(null);
     setIsGeneratingAudio(false);
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
+    if (audioUrl && audioUrl.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
+    
+    // Check if the new section already has an audioUrl
+    const existingAudioUrl = (currentSection as { audioUrl?: string } | undefined)?.audioUrl;
+    if (existingAudioUrl) {
+      setAudioUrl(existingAudioUrl);
+      // Default to mpeg for stored files if not specified
+      setAudioMimeType("audio/mpeg");
+    } else {
+      setAudioUrl(null);
+      setAudioMimeType(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSection?.id]);
+  }, [currentSection?.id, (currentSection as { audioUrl?: string } | undefined)?.audioUrl]);
 
   const handlePlayPodcast = async () => {
     if (!currentSection) return;
@@ -571,13 +581,13 @@ export default function CourseViewer({
 
               {/* Navigation */}
               <nav className="space-y-6">
-                {course.modules?.map((module, mIdx) => (
+                {(Array.isArray(course.modules) ? course.modules : []).map((module, mIdx) => (
                   <div key={mIdx}>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
                       {module.moduleTitle}
                     </h3>
                     <div className="space-y-1">
-                      {module.sections?.map((section, sIdx) => {
+                      {(Array.isArray(module.sections) ? module.sections : []).map((section, sIdx) => {
                         const isActive =
                           !isFinalTestActive && mIdx === activeModuleIdx && sIdx === activeSectionIdx;
                         return (

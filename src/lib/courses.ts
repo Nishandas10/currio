@@ -176,23 +176,44 @@ export async function updateLessonAssetUrls(params: {
   audioUrl?: string;
   duration?: number;
 }) {
-  const patch: Record<string, unknown> = {
-    updatedAt: serverTimestamp(),
-  };
-
-  const prefix = `courseData.modules.${params.moduleIndex}.sections.${params.sectionIndex}`;
-
-  if (typeof params.imageUrl === "string")
-    patch[`${prefix}.imageUrl`] = params.imageUrl;
-  if (typeof params.audioUrl === "string")
-    patch[`${prefix}.audioUrl`] = params.audioUrl;
-  if (typeof params.duration === "number")
-    patch[`${prefix}.duration`] = params.duration;
-
-  if (Object.keys(patch).length <= 1) return;
-
   const ref = doc(firebaseDb, "courses", params.courseId);
-  await updateDoc(ref, patch);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) return;
+
+  const data = snap.data() as FirestoreCourseDoc;
+  const courseData = data.courseData;
+
+  if (!courseData || !courseData.modules) return;
+
+  // Deep clone to avoid mutating state directly (though here we just read from Firestore)
+  const modules = [...courseData.modules];
+  const mod = { ...modules[params.moduleIndex] };
+
+  if (!mod || !mod.sections) return;
+
+  const sections = [...mod.sections];
+  // Cast to any to allow adding runtime fields not in the Zod schema
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const section = { ...sections[params.sectionIndex] } as any;
+
+  if (!section) return;
+
+  // Apply updates
+  if (typeof params.imageUrl === "string") section.imageUrl = params.imageUrl;
+  if (typeof params.audioUrl === "string") section.audioUrl = params.audioUrl;
+  if (typeof params.duration === "number") section.duration = params.duration;
+
+  // Reconstruct the tree
+  sections[params.sectionIndex] = section;
+  mod.sections = sections;
+  modules[params.moduleIndex] = mod;
+
+  // Update Firestore with the modified modules array
+  await updateDoc(ref, {
+    "courseData.modules": modules,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /**

@@ -1075,17 +1075,19 @@ export default function CourseViewer({
     </div>
 
       {/* Persistent Bottom Podcast Player */}
-      <PodcastPlayer
-        audioUrl={audioUrl}
-        audioMimeType={audioMimeType}
-        title={currentSection?.title}
-        thumbnail={courseImageUrl}
-        isLoading={isGeneratingAudio}
-        onPrevious={goToPreviousSection}
-        onNext={goToNextSection}
-        canGoPrevious={canGoPrevious}
-        canGoNext={canGoNext}
-      />
+      {activeTab === "listen" && (
+        <PodcastPlayer
+          audioUrl={audioUrl}
+          audioMimeType={audioMimeType}
+          title={currentSection?.title}
+          thumbnail={courseImageUrl}
+          isLoading={isGeneratingAudio}
+          onPrevious={goToPreviousSection}
+          onNext={goToNextSection}
+          canGoPrevious={canGoPrevious}
+          canGoNext={canGoNext}
+        />
+      )}
   </div>
   );
 }

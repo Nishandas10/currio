@@ -76,9 +76,38 @@ export async function POST(req: Request) {
       // If still not ready, let this request proceed to generate (lock may have expired).
     }
 
-    // Acquire lock (best-effort). Upstash SET supports options, but typings vary;
-    // store a timestamp value and clear on completion.
-    await redis.set(lockKey, Date.now());
+    // Acquire lock (best-effort).
+    // Use nx: true to ensure only one process generates the thumbnail.
+    // Set a short expiry (e.g., 30s) to prevent deadlocks if the process crashes.
+    const acquired = await redis.set(lockKey, Date.now(), { nx: true, ex: 30 });
+
+    if (!acquired) {
+      // If we failed to acquire the lock, it means someone else just took it.
+      // We should enter the wait loop.
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const again = (await redis.get(key)) as Record<string, unknown> | null;
+        const img =
+          typeof again?.courseImage === "string"
+            ? (again.courseImage as string)
+            : "";
+        if (img) {
+          return new Response(
+            JSON.stringify({ success: true, courseImage: img, cached: true }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        }
+      }
+      // If still not ready after waiting, we could error out or try generating.
+      // Let's error out to avoid double generation.
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Thumbnail generation timed out",
+        }),
+        { status: 408, headers: { "content-type": "application/json" } }
+      );
+    }
 
     // Choose the best-available prompt:
     // 1) courseTitle (when full course exists)
@@ -145,7 +174,17 @@ export async function POST(req: Request) {
     // Persist either into the full course object if it exists, or create a minimal shell.
     // When streaming finishes, /api/generate will overwrite course:${courseId} with full content,
     // but it will also include courseImage (from its own parallel generation promise).
-    await redis.set(key, { ...(course ?? { id: courseId }), courseImage });
+
+    // CRITICAL: Re-read current data to avoid overwriting course content if 'generate' finished while we were working.
+    const currentData = (await redis.get(key)) as Record<
+      string,
+      unknown
+    > | null;
+    await redis.set(
+      key,
+      { ...(currentData ?? { id: courseId }), courseImage },
+      { ex: 3600 }
+    );
 
     // Release lock.
     try {

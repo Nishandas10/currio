@@ -1,20 +1,7 @@
 import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
 
 // EDGE RUNTIME: Critical for speed
 export const runtime = "edge";
-
-const PROMPT_REFINEMENT_SYSTEM = `You are an expert at creating high-quality image generation prompts for educational course thumbnails.
-Given a course title (and optional description), create a detailed image prompt that depicts the subject matter clearly and attractively.
-
-Guidelines:
-- SUBJECT: The main subject should be directly relevant to the course topic (e.g., for "Python Programming", show a computer screen with code or a stylized python logo; for "History of Rome", show the Colosseum or a Roman bust).
-- STYLE: Use a "cinematic, high-resolution, photorealistic" style or "modern 3D illustration" style. Avoid abstract or vague art.
-- COMPOSITION: Center the subject with a clean background.
-- LIGHTING: Use professional studio lighting or natural sunlight.
-- NO TEXT: Do not include any text, words, or letters in the image.
-
-Output ONLY the refined prompt, nothing else.`;
 
 export async function POST(req: Request) {
   try {
@@ -29,18 +16,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Step 1: Refine the prompt using Gemini Flash Lite
-    const promptInput = `Course topic: ${userPrompt}${
-      description ? `\nDescription: ${description}` : ""
-    }\n\nCreate an image generation prompt for this course thumbnail.`;
-
-    const refinedPromptResult = await generateText({
-      model: google("gemini-2.0-flash-lite"),
-      system: PROMPT_REFINEMENT_SYSTEM,
-      prompt: promptInput,
-    });
-
-    const refinedPrompt = refinedPromptResult.text.trim();
+    // Step 1: Use description directly or fallback to prompt
+    // We skip the refinement step to speed up generation and reduce latency.
+    // The description from the course generation is usually descriptive enough.
+    const refinedPrompt = description || userPrompt;
 
     // Step 2: Generate image using Imagen 4.0
     const imageModel = google.image("imagen-4.0-fast-generate-001");

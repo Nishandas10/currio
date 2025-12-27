@@ -199,10 +199,14 @@ export async function POST(req: Request) {
     // Persist minimal metadata immediately so other endpoints (like thumbnail) can work
     // while the course is still streaming.
     if (!skipRedis) {
-      await redis!.set(`course:meta:${courseId}`, {
-        prompt,
-        searchQuery: prompt,
-      });
+      await redis!.set(
+        `course:meta:${courseId}`,
+        {
+          prompt,
+          searchQuery: prompt,
+        },
+        { ex: 3600 }
+      );
     }
 
     // 1. Context Preparation (Simple concatenation for text sources)
@@ -238,10 +242,14 @@ export async function POST(req: Request) {
 
     // Persist search metadata so other endpoints / the UI can display citations later.
     if (!skipRedis) {
-      await redis!.set(`course:search:${courseId}`, {
-        query: prompt,
-        results: searchResults,
-      });
+      await redis!.set(
+        `course:search:${courseId}`,
+        {
+          query: prompt,
+          results: searchResults,
+        },
+        { ex: 3600 }
+      );
     }
 
     const webSearchBlock = formatSearchResultsForPrompt(searchResults);
@@ -287,9 +295,9 @@ export async function POST(req: Request) {
             id: courseId,
             ...(courseImage ? { courseImage } : {}),
           };
-          // Expire after 7 days to save space (Guest Policy)
+          // Expire after 60 minutes (Guest Policy)
           if (!skipRedis) {
-            await redis!.set(`course:${courseId}`, courseWithId);
+            await redis!.set(`course:${courseId}`, courseWithId, { ex: 3600 });
           }
         }
       },

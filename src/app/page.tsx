@@ -58,9 +58,9 @@ export default function Home() {
       const id = courseIdRef.current ?? courseId;
       if (id && object?.courseTitle) {
         const slug = slugify(object.courseTitle);
-        router.replace(`/course/${slug}-${id}`);
+        window.history.replaceState(null, "", `/course/${slug}-${id}`);
       } else if (id) {
-        router.replace(`/course/${id}`);
+        window.history.replaceState(null, "", `/course/${id}`);
       }
     },
   })

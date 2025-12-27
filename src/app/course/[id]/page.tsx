@@ -107,8 +107,8 @@ export default function CoursePage({ params }: PageProps) {
            });
            await addCourseToUser({ uid: user.uid, courseId });
 
-           // Update URL to slug (without query params)
-           router.replace(`/course/${slug}`, { scroll: false });
+           // Update URL to slug silently (without triggering a re-render/navigation)
+           window.history.replaceState(null, "", `/course/${slug}`);
         } catch (e) {
            console.error("Failed to save course:", e);
         }
@@ -193,17 +193,41 @@ export default function CoursePage({ params }: PageProps) {
 
     async function load() {
       try {
-        const course = await getCourseDoc(courseId);
+        let course: CourseWithMetadata | null = null;
+
+        if (user) {
+          course = await getCourseDoc(courseId);
+        } else {
+          // Guest: Try Redis first
+          try {
+            const res = await fetch(`/api/courses/${courseId}/redis`);
+            if (res.ok) {
+              const redisCourse = await res.json();
+              course = {
+                ...redisCourse,
+                courseThumbnail: redisCourse.courseImage || redisCourse.courseThumbnail,
+              };
+            }
+          } catch (e) {
+            console.warn("Failed to load from Redis:", e);
+          }
+
+          // Fallback to Firestore (e.g. public shared link) if Redis fails/expired
+          if (!course) {
+            course = await getCourseDoc(courseId);
+          }
+        }
+
         if (course) {
           setLoadedCourse(course);
         }
       } catch (e) {
-        console.warn("Failed to load course from Firestore:", e);
+        console.warn("Failed to load course:", e);
       }
     }
 
     void load();
-  }, [courseId, prompt, object]);
+  }, [courseId, prompt, object, user]);
 
   // Reload course when courseIdSlug changes (after redirect to slug URL)
   // This ensures we pick up the courseThumbnail that was just uploaded

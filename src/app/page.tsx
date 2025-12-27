@@ -7,19 +7,13 @@ import Link from "next/link";
 import { ArrowUp } from "lucide-react"
 import Image from "next/image"
 
-// --- NEW IMPORTS ---
-import { experimental_useObject as useObject } from "@ai-sdk/react"
-import { courseSchema, type Course } from "@/lib/schema" // Make sure this path is correct
-import CourseViewer from "@/components/CourseViewer" // Make sure this path is correct
-
-function slugify(text: string) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
-    .replace(/\-\-+/g, "-"); // Replace multiple - with single -
+function generateId(length = 10) {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 export default function Home() {
@@ -31,39 +25,7 @@ export default function Home() {
   const addMenuRef = useRef<HTMLDivElement | null>(null)
   
   // --- NEW LOGIC STATE ---
-  type Source = { type: string; content: string }
-  const [input, setInput] = useState("")
-  const [sources] = useState<Source[]>([]) 
-
-  // --- AI HOOK ---
-  const [courseId, setCourseId] = useState<string | null>(null);
-  const courseIdRef = useRef<string | null>(null);
-
-  const { object, submit, isLoading } = useObject({
-    api: "/api/generate",
-    schema: courseSchema,
-    fetch: async (req, init) => {
-      const res = await fetch(req, init);
-      if (res.ok) {
-        const id = res.headers.get("x-course-id");
-        if (id) {
-          courseIdRef.current = id;
-          setCourseId(id);
-        }
-      }
-      return res;
-    },
-    onFinish: ({ object }) => {
-      // MAGIC: Automatically update URL to the permanent public link without reload
-      const id = courseIdRef.current ?? courseId;
-      if (id && object?.courseTitle) {
-        const slug = slugify(object.courseTitle);
-        window.history.replaceState(null, "", `/course/${slug}-${id}`);
-      } else if (id) {
-        window.history.replaceState(null, "", `/course/${id}`);
-      }
-    },
-  })
+  const [input, setInput] = useState("") 
 
   const header = useMemo(
     () => (
@@ -115,18 +77,12 @@ export default function Home() {
   const handleGenerate = () => {
     if (!input.trim()) return
 
-    if (user) {
-      // Authenticated flow: Redirect immediately to course page to start generation there.
-      // We generate a client-side ID (UUID) to reserve the slot.
-      const newId = crypto.randomUUID();
-      const params = new URLSearchParams();
-      params.set("prompt", input);
-      router.push(`/course/${newId}?${params.toString()}`);
-      return;
-    }
-
-    // Trigger the AI generation (Unauthenticated flow)
-    submit({ prompt: input, sources: sources })
+    // Unified flow: Redirect immediately to course page to start generation there.
+    // We generate a client-side ID to reserve the slot.
+    const newId = generateId();
+    const params = new URLSearchParams();
+    params.set("prompt", input);
+    router.push(`/course/${newId}?${params.toString()}`);
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -167,26 +123,6 @@ export default function Home() {
   }
 
   // If user is authenticated, we still show the home page; UI will adapt (Logout vs Sign in/up)
-
-  // --- CONDITIONAL RENDERING ---
-  // If the AI has started generating (object exists) or is loading, swap the view
-  if (object || isLoading) {
-    // While streaming, the course object may be partial; we inject a stable id (from response headers)
-    // so sub-features like thumbnail generation can start immediately.
-    const enrichedCourse = ({
-      ...(object as Partial<Course>),
-      ...(courseId ? { id: courseId } : {}),
-    } as unknown) as Course;
-
-    return (
-      <div className="min-h-screen bg-[#fcfaf8] flex flex-col">
-        {header}
-        <main className="flex-1">
-          <CourseViewer course={enrichedCourse} userPrompt={input} hideHeader />
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#fcfaf8] flex flex-col">

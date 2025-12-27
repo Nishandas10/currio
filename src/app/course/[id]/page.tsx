@@ -30,6 +30,16 @@ type CourseWithMetadata = Course & {
   sources?: WebSource[];
 };
 
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
+    .replace(/\-\-+/g, "-"); // Replace multiple - with single -
+}
+
 function placeholderCourse(id: string): Course {
   return {
     courseTitle: "Generating…",
@@ -46,7 +56,7 @@ export default function CoursePage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prompt = searchParams.get("prompt");
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [loadedCourse, setLoadedCourse] = useState<CourseWithMetadata | null>(null);
   const [uploadedCourseThumbnail, setUploadedCourseThumbnail] = useState<string | null>(null);
@@ -97,22 +107,29 @@ export default function CoursePage({ params }: PageProps) {
       return response;
     },
     onFinish: async ({ object }) => {
-      if (user && object?.courseTitle) {
-        try {
-           const { slug } = await createCourseDoc({
-             courseId,
-             userId: user.uid,
-             prompt: prompt || "",
-             course: object as Course,
-             isPublic: false,
-             ...(webSources ? { sources: webSources } : {}),
-           });
-           await addCourseToUser({ uid: user.uid, courseId });
+      if (object?.courseTitle) {
+        if (user) {
+          try {
+            const { slug } = await createCourseDoc({
+              courseId,
+              userId: user.uid,
+              prompt: prompt || "",
+              course: object as Course,
+              isPublic: false,
+              ...(webSources ? { sources: webSources } : {}),
+            });
+            await addCourseToUser({ uid: user.uid, courseId });
 
-           // Update URL to slug silently (without triggering a re-render/navigation)
-           window.history.replaceState(null, "", `/course/${slug}`);
-        } catch (e) {
-           console.error("Failed to save course:", e);
+            // Update URL to slug silently (without triggering a re-render/navigation)
+            window.history.replaceState(null, "", `/course/${slug}`);
+          } catch (e) {
+            console.error("Failed to save course:", e);
+          }
+        } else {
+          // Guest flow: Just update the URL for aesthetics/SEO
+          // The data is already in Redis (handled by the API)
+          const slug = `${slugify(object.courseTitle)}-${courseId}`;
+          window.history.replaceState(null, "", `/course/${slug}`);
         }
       }
     }
@@ -169,20 +186,22 @@ export default function CoursePage({ params }: PageProps) {
 
   // Effect to trigger generation if prompt is present
   useEffect(() => {
-    if (prompt && user && !hasStartedRef.current) {
+    if (prompt && !hasStartedRef.current) {
       hasStartedRef.current = true;
-      
-      // Create placeholder course doc immediately so thumbnail update can work
-      void createCoursePlaceholderDoc({
-        courseId,
-        userId: user.uid,
-        prompt,
-        isPublic: false,
-      });
-      
+
+      if (user) {
+        // Create placeholder course doc immediately so thumbnail update can work
+        void createCoursePlaceholderDoc({
+          courseId,
+          userId: user.uid,
+          prompt,
+          isPublic: false,
+        });
+      }
+
       // Remove the prompt from URL immediately to prevent re-generation on URL changes
       router.replace(`/course/${courseIdSlug}`, { scroll: false });
-      
+
       // Start generation (sources will come from response headers)
       submit({ prompt });
     }
@@ -191,7 +210,11 @@ export default function CoursePage({ params }: PageProps) {
   // Load existing course if NOT generating
   useEffect(() => {
     // If we have a prompt or are streaming, don't load from Firestore yet.
-    if (prompt || object) return;
+    // Also check hasStartedRef to avoid race condition where prompt is removed but object is not yet populated.
+    if (prompt || object || hasStartedRef.current) return;
+    
+    // Wait for auth to settle before deciding whether to check Redis or Firestore
+    if (authLoading) return;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -259,7 +282,7 @@ export default function CoursePage({ params }: PageProps) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [courseId, prompt, object, user]);
+  }, [courseId, prompt, object, user, authLoading]);
 
   // Reload course when courseIdSlug changes (after redirect to slug URL)
   // This ensures we pick up the courseThumbnail that was just uploaded

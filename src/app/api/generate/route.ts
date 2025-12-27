@@ -294,6 +294,7 @@ export async function POST(req: Request) {
             ...(validated as Record<string, unknown>),
             id: courseId,
             ...(courseImage ? { courseImage } : {}),
+            ...(searchResults.length > 0 ? { sources: searchResults } : {}),
           };
           // Expire after 60 minutes (Guest Policy)
           if (!skipRedis) {

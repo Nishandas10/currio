@@ -43,8 +43,17 @@ export default function CourseViewer({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
   
-  const courseThumbnail = (course as Course & { courseThumbnail?: string })
+  const rawThumbnail = (course as Course & { courseThumbnail?: string })
     .courseThumbnail;
+  
+  // Ensure we handle raw base64 strings (missing data: prefix) gracefully
+  const courseThumbnail = 
+    rawThumbnail && 
+    !rawThumbnail.startsWith("http") && 
+    !rawThumbnail.startsWith("data:") && 
+    rawThumbnail.length > 100
+      ? `data:image/png;base64,${rawThumbnail}`
+      : rawThumbnail;
 
   // Extract sources from course metadata if available (for authenticated users)
   const initialSources = (course as Course & { sources?: WebSource[] }).sources ?? null;
@@ -531,13 +540,13 @@ export default function CourseViewer({
             ) : (
               <>
                 <Link 
-                  href="/signup" 
+                  href={courseId ? `/signup?courseId=${courseId}` : "/signup"} 
                   className="px-5 py-2 text-sm font-medium bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] rounded-full transition-colors"
                 >
                   Sign Up
                 </Link>
                 <Link 
-                  href="/login" 
+                  href={courseId ? `/login?courseId=${courseId}` : "/login"} 
                   className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-full text-[#1A1A1A] hover:bg-gray-50 transition-colors"
                 >
                   Log In

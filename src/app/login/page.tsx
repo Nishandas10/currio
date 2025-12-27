@@ -1,25 +1,47 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
+import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer"
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const { user, loading, signInWithEmail, signInWithGoogle } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const courseId = searchParams.get("courseId")
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/')
+      if (courseId) {
+        console.log("User logged in, transferring course:", courseId);
+        // Attempt to transfer the guest course
+        transferGuestCourseToUser(courseId, user.uid)
+          .then((slug) => {
+            console.log("Transfer result slug:", slug);
+            if (slug) {
+              router.push(`/course/${slug}`)
+            } else {
+              console.warn("Transfer failed or no slug returned, redirecting to home");
+              router.push('/')
+            }
+          })
+          .catch((err) => {
+            console.error("Transfer error:", err);
+            router.push('/');
+          });
+      } else {
+        router.push('/')
+      }
     }
-  }, [user, loading, router])
+  }, [user, loading, router, courseId])
 
   if (loading) {
     return (
@@ -29,7 +51,17 @@ export default function LoginPage() {
     )
   }
 
-  if (user) return null
+  // If user is authenticated but we are waiting for transfer/redirect
+  if (user) {
+    return (
+      <div className="min-h-screen bg-[#fbf9f7] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your account...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,5 +172,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#fbf9f7] flex items-center justify-center">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

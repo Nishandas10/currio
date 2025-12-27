@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
 import { Eye, EyeOff } from 'lucide-react'
+import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer"
 
-export default function SignupPage() {
+function SignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -16,12 +17,24 @@ export default function SignupPage() {
   const [message, setMessage] = useState("")
   const { user, loading, signInWithGoogle, registerWithEmail } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const courseId = searchParams.get("courseId")
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/')
+      if (courseId) {
+        transferGuestCourseToUser(courseId, user.uid).then((slug) => {
+          if (slug) {
+            router.push(`/course/${slug}`)
+          } else {
+            router.push('/')
+          }
+        })
+      } else {
+        router.push('/')
+      }
     }
-  }, [user, loading, router])
+  }, [user, loading, router, courseId])
 
   // Show loading while checking authentication
   if (loading) {
@@ -206,4 +219,12 @@ export default function SignupPage() {
       </div>
     </div>
   )
-} 
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#fbf9f7] flex items-center justify-center">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
+  )
+}

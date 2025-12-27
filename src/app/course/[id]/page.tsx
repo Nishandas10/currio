@@ -9,14 +9,16 @@ import { courseSchema } from "@/lib/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   createCourseDoc,
-  getCourseDoc,
   updateCourseThumbnail,
   updateCourseSources,
   createCoursePlaceholderDoc,
   type WebSource,
+  type FirestoreCourseDoc,
 } from "@/lib/courses";
 import { addCourseToUser } from "@/lib/users";
 import { uploadCourseImage } from "@/lib/storage";
+import { doc, onSnapshot } from "firebase/firestore";
+import { firebaseDb } from "@/lib/firebase";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -191,35 +193,61 @@ export default function CoursePage({ params }: PageProps) {
     // If we have a prompt or are streaming, don't load from Firestore yet.
     if (prompt || object) return;
 
+    let unsubscribe: (() => void) | undefined;
+
     async function load() {
       try {
-        let course: CourseWithMetadata | null = null;
-
         if (user) {
-          course = await getCourseDoc(courseId);
+          // Real-time subscription for authenticated users
+          const ref = doc(firebaseDb, "courses", courseId);
+          unsubscribe = onSnapshot(ref, (snap) => {
+            if (snap.exists()) {
+              const data = snap.data() as FirestoreCourseDoc;
+              const course = {
+                ...data.courseData,
+                ...(data.courseThumbnail
+                  ? { courseThumbnail: data.courseThumbnail }
+                  : {}),
+                ...(data.sources ? { sources: data.sources } : {}),
+              };
+              setLoadedCourse(course);
+            }
+          });
         } else {
           // Guest: Try Redis first
           try {
             const res = await fetch(`/api/courses/${courseId}/redis`);
             if (res.ok) {
               const redisCourse = await res.json();
-              course = {
+              const course = {
                 ...redisCourse,
-                courseThumbnail: redisCourse.courseImage || redisCourse.courseThumbnail,
+                courseThumbnail:
+                  redisCourse.courseImage || redisCourse.courseThumbnail,
               };
+              setLoadedCourse(course);
+              return; // Found in Redis, no need to check Firestore
             }
           } catch (e) {
             console.warn("Failed to load from Redis:", e);
           }
 
           // Fallback to Firestore (e.g. public shared link) if Redis fails/expired
-          if (!course) {
-            course = await getCourseDoc(courseId);
-          }
-        }
-
-        if (course) {
-          setLoadedCourse(course);
+          // For guests viewing public links, we can also use onSnapshot or just getDoc.
+          // Using onSnapshot ensures they see updates too.
+          const ref = doc(firebaseDb, "courses", courseId);
+          unsubscribe = onSnapshot(ref, (snap) => {
+            if (snap.exists()) {
+              const data = snap.data() as FirestoreCourseDoc;
+              const course = {
+                ...data.courseData,
+                ...(data.courseThumbnail
+                  ? { courseThumbnail: data.courseThumbnail }
+                  : {}),
+                ...(data.sources ? { sources: data.sources } : {}),
+              };
+              setLoadedCourse(course);
+            }
+          });
         }
       } catch (e) {
         console.warn("Failed to load course:", e);
@@ -227,32 +255,24 @@ export default function CoursePage({ params }: PageProps) {
     }
 
     void load();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [courseId, prompt, object, user]);
 
   // Reload course when courseIdSlug changes (after redirect to slug URL)
   // This ensures we pick up the courseThumbnail that was just uploaded
+  // NOTE: With onSnapshot above, this explicit reload effect is largely redundant
+  // but we keep it as a fallback or for specific timing issues if onSnapshot takes time to connect.
   useEffect(() => {
     if (!courseIdSlug || prompt || object) return;
     
-    async function reloadAfterRedirect() {
-      try {
-        console.log("[Reload Effect] Attempting to load courseId:", courseId, "user:", user?.uid);
-        const course = await getCourseDoc(courseId);
-        console.log("[Reload Effect] Loaded course:", course?.courseTitle);
-        if (course) setLoadedCourse(course);
-      } catch (e) {
-        console.error("[Reload Effect] Failed to reload course after redirect:", e);
-        // Log more details
-        if (e instanceof Error) {
-          console.error("[Reload Effect] Error details:", e.message, e.name);
-        }
-      }
-    }
-    
-    // Small delay to ensure Firestore write has propagated
-    const timer = setTimeout(reloadAfterRedirect, 500);
-    return () => clearTimeout(timer);
-  }, [courseIdSlug, courseId, prompt, object, user]);
+    // If we are already subscribed via the effect above, this might be redundant,
+    // but it doesn't hurt to force a check if the slug changed.
+    // However, since the effect above depends on [courseId], it will re-run when slug changes (since courseId is derived from slug).
+    // So we can probably remove this effect or keep it minimal.
+  }, [courseIdSlug, prompt, object]);
 
   // Determine which course to display
   let displayCourse: CourseWithMetadata =

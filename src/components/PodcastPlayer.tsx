@@ -170,10 +170,14 @@ export default function PodcastPlayer({
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const vol = parseFloat(e.target.value);
     setVolume(vol);
-    if (audioRef.current) {
-      audioRef.current.volume = vol;
-    }
   };
+
+  // Sync volume with audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds)) return "0:00";
@@ -303,11 +307,16 @@ export default function PodcastPlayer({
                 type="range"
                 min="0"
                 max="1"
-                step="0.1"
+                step="0.01"
                 value={volume}
                 onChange={handleVolumeChange}
                 disabled={!audioUrl || isLoading}
                 className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1A1A1A]"
+                style={{
+                  background: `linear-gradient(to right, #1A1A1A 0%, #1A1A1A ${
+                    volume * 100
+                  }%, #E5E5E5 ${volume * 100}%, #E5E5E5 100%)`,
+                }}
               />
             </div>
           </div>

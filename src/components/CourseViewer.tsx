@@ -666,12 +666,8 @@ export default function CourseViewer({
                 <div className="animate-in fade-in duration-500">
                   <div className="mb-8">
                     <h2 className="font-serif text-3xl font-medium text-[#1A1A1A] mb-6">
-                      Take test
+                      Take the final course test
                     </h2>
-                    <div className="border-t border-gray-300 mb-6"></div>
-                    <p className="text-gray-600 leading-relaxed">
-                      A course-wide checkpoint: up to <span className="font-medium">31</span> quiz questions and <span className="font-medium">31</span> flashcards pulled from across the full course.
-                    </p>
                   </div>
 
                   <ChapterChecks

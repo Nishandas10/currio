@@ -215,6 +215,10 @@ export default function CoursePage({ params }: PageProps) {
     // Wait for auth to settle before deciding whether to check Redis or Firestore
     if (authLoading) return;
 
+    // If we are generating (hasStartedRef) AND we are a guest, don't load from Redis (it won't be there yet).
+    // Authenticated users should proceed to subscribe to Firestore to get real-time updates.
+    if (!user && hasStartedRef.current) return;
+
     let unsubscribe: (() => void) | undefined;
 
     async function load() {
@@ -281,7 +285,7 @@ export default function CoursePage({ params }: PageProps) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [courseId, prompt, object, user, authLoading]);
+  }, [courseId, prompt, user, authLoading]);
 
   // Reload course when courseIdSlug changes (after redirect to slug URL)
   // This ensures we pick up the courseThumbnail that was just uploaded

@@ -14,9 +14,9 @@ import { buildWikiImageQueryCandidates } from "@/lib/wikiQuery";
 import WebNotes from "@/components/WebNotes";
 import { buildFinalTestFromCourse } from "@/lib/finalTest";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 import { uploadPodcastAudio } from "@/lib/storage";
 import { updateLessonAssetUrls } from "@/lib/courses";
+import { ShareCourseDialog } from "@/components/ShareCourseDialog";
 
 export default function CourseViewer({
   course,
@@ -27,8 +27,7 @@ export default function CourseViewer({
   userPrompt?: string;
   hideHeader?: boolean;
 }) {
-  const { user, loading: authLoading, signOutUser } = useAuth();
-  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   // UI State
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
@@ -523,20 +522,12 @@ export default function CourseViewer({
           </div>
           <div className="flex items-center gap-3">
             {user ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await signOutUser();
-                    router.refresh();
-                  } catch (e) {
-                    console.error("Logout error:", e);
-                  }
-                }}
-                className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
-              >
-                Logout
-              </button>
+              <ShareCourseDialog
+                courseTitle={course.courseTitle}
+                courseDescription={course.courseDescription}
+                courseThumbnail={courseImageUrl}
+                courseSlug={courseId ? `${(course as Course & { slug?: string }).slug || courseId}` : ""}
+              />
             ) : (
               <>
                 <Link 

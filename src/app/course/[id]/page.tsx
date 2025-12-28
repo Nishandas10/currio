@@ -19,6 +19,8 @@ import { addCourseToUser } from "@/lib/users";
 import { uploadCourseImage } from "@/lib/storage";
 import { doc, onSnapshot } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -59,10 +61,31 @@ export default function CoursePage({ params }: PageProps) {
   const { user, loading: authLoading } = useAuth();
 
   const [loadedCourse, setLoadedCourse] = useState<CourseWithMetadata | null>(null);
+  const [isGuestLimitReached, setIsGuestLimitReached] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || user) return;
+
+    const stored = localStorage.getItem("guest_created_courses");
+    const guestCourses: string[] = stored ? JSON.parse(stored) : [];
+
+    if (prompt && courseId && !guestCourses.includes(courseId)) {
+      guestCourses.push(courseId);
+      localStorage.setItem("guest_created_courses", JSON.stringify(guestCourses));
+    }
+
+    const index = guestCourses.indexOf(courseId);
+    if (index >= 1 && !isGuestLimitReached) {
+      // Use setTimeout to avoid synchronous state update during render phase
+      setTimeout(() => setIsGuestLimitReached(true), 0);
+    }
+  }, [user, authLoading, prompt, courseId, isGuestLimitReached]);
   const [uploadedCourseThumbnail, setUploadedCourseThumbnail] = useState<string | null>(null);
   const [webSources, setWebSources] = useState<WebSource[] | null>(null);
   const hasStartedRef = useRef(false);
   const imageStartedRef = useRef(false);
+
+  const guestInProgressKey = `guest_generation_in_progress:${courseId}`;
 
   // AI Generation Hook
   const { object, submit } = useObject({
@@ -108,6 +131,13 @@ export default function CoursePage({ params }: PageProps) {
     },
     onFinish: async ({ object }) => {
       if (object?.courseTitle) {
+        // Generation finished; clear any persisted "in progress" flag.
+        try {
+          localStorage.removeItem(guestInProgressKey);
+        } catch {
+          // ignore
+        }
+
         if (user) {
           try {
             const { slug } = await createCourseDoc({
@@ -189,6 +219,18 @@ export default function CoursePage({ params }: PageProps) {
     if (prompt && !hasStartedRef.current) {
       hasStartedRef.current = true;
 
+      // If guest starts generation, persist the prompt so we can resume after auth.
+      if (!user) {
+        try {
+          localStorage.setItem(
+            guestInProgressKey,
+            JSON.stringify({ prompt, startedAt: Date.now() })
+          );
+        } catch {
+          // ignore
+        }
+      }
+
       if (user) {
         // Create placeholder course doc immediately so thumbnail update can work
         void createCoursePlaceholderDoc({
@@ -205,7 +247,37 @@ export default function CoursePage({ params }: PageProps) {
       // Start generation (sources will come from response headers)
       submit({ prompt });
     }
-  }, [prompt, user, submit, router, courseIdSlug, courseId]);
+  }, [prompt, user, submit, router, courseIdSlug, courseId, guestInProgressKey]);
+
+  // If the user logged in mid-generation, they’ll come back to /course/:id (no prompt).
+  // Resume streaming using the saved prompt.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (prompt) return; // prompt present already triggers generation
+    if (hasStartedRef.current) return;
+
+    try {
+      const stored = localStorage.getItem(guestInProgressKey);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as { prompt?: string };
+      if (!parsed?.prompt) return;
+
+      hasStartedRef.current = true;
+
+      // Create placeholder doc so dependent updates can work
+      void createCoursePlaceholderDoc({
+        courseId,
+        userId: user.uid,
+        prompt: parsed.prompt,
+        isPublic: false,
+      });
+
+      submit({ prompt: parsed.prompt });
+    } catch (e) {
+      console.warn("Failed to resume generation after auth:", e);
+    }
+  }, [authLoading, user, prompt, courseId, guestInProgressKey, submit]);
 
   // Load existing course if NOT generating
   useEffect(() => {
@@ -226,7 +298,7 @@ export default function CoursePage({ params }: PageProps) {
         if (user) {
           // Real-time subscription for authenticated users
           const ref = doc(firebaseDb, "courses", courseId);
-          unsubscribe = onSnapshot(ref, (snap) => {
+          unsubscribe = onSnapshot(ref, async (snap) => {
             if (snap.exists()) {
               const data = snap.data() as FirestoreCourseDoc;
               const course = {
@@ -237,6 +309,24 @@ export default function CoursePage({ params }: PageProps) {
                 ...(data.sources ? { sources: data.sources } : {}),
               };
               setLoadedCourse(course);
+            } else {
+              // If not in Firestore yet (e.g. just transferred from guest), try Redis as fallback
+              // This handles the case where transfer might be in progress or failed,
+              // or if we are viewing a course that hasn't been fully persisted yet.
+              try {
+                const res = await fetch(`/api/courses/${courseId}/redis`);
+                if (res.ok) {
+                  const redisCourse = await res.json();
+                  const course = {
+                    ...redisCourse,
+                    courseThumbnail:
+                      redisCourse.courseImage || redisCourse.courseThumbnail,
+                  };
+                  setLoadedCourse(course);
+                }
+              } catch (e) {
+                console.warn("Failed to load from Redis fallback:", e);
+              }
             }
           });
         } else {
@@ -327,5 +417,38 @@ export default function CoursePage({ params }: PageProps) {
   }
 
   // CourseViewer expects a Course shape; we show placeholder while generating.
-  return <CourseViewer course={displayCourse} userPrompt={prompt || displayCourse.courseTitle} />;
+  return (
+    <>
+      {isGuestLimitReached && (
+        <>
+          <div className="fixed inset-0 z-40 bg-linear-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-[0_-8px_30px_rgba(0,0,0,0.12)] rounded-t-4xl p-8 pb-12 animate-in slide-in-from-bottom duration-500">
+            <div className="max-w-md mx-auto text-center space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-serif font-medium tracking-tight">Create a free Currio account</h2>
+                <p className="text-muted-foreground text-base">
+                  Gain access to this course and start creating your own personalized courses today.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Link href={`/signup?redirect=/course/${courseIdSlug}`} className="w-full">
+                  <Button size="lg" className="w-full font-semibold text-md rounded-full bg-[#F9F4DA] text-black hover:bg-[#F0EBC0] border-0 shadow-none">
+                    Sign Up
+                  </Button>
+                </Link>
+                <Link href={`/login?redirect=/course/${courseIdSlug}`} className="w-full">
+                  <Button variant="outline" size="lg" className="w-full font-semibold text-md rounded-full border-input hover:bg-accent hover:text-accent-foreground">
+                    Log In
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      <div className={isGuestLimitReached ? "pointer-events-none select-none" : ""}>
+        <CourseViewer course={displayCourse} userPrompt={prompt || displayCourse.courseTitle} />
+      </div>
+    </>
+  );
 }

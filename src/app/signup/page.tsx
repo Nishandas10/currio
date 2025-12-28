@@ -19,10 +19,13 @@ function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const courseId = searchParams.get("courseId")
+  const redirectUrl = searchParams.get("redirect")
 
   useEffect(() => {
     if (!loading && user) {
-      if (courseId) {
+      if (redirectUrl) {
+        router.push(redirectUrl)
+      } else if (courseId) {
         transferGuestCourseToUser(courseId, user.uid).then((slug) => {
           if (slug) {
             router.push(`/course/${slug}`)
@@ -34,7 +37,7 @@ function SignupForm() {
         router.push('/')
       }
     }
-  }, [user, loading, router, courseId])
+  }, [user, loading, router, courseId, redirectUrl])
 
   // Show loading while checking authentication
   if (loading) {

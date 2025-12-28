@@ -17,10 +17,13 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const courseId = searchParams.get("courseId")
+  const redirectUrl = searchParams.get("redirect")
 
   useEffect(() => {
     if (!loading && user) {
-      if (courseId) {
+      if (redirectUrl) {
+        router.push(redirectUrl)
+      } else if (courseId) {
         console.log("User logged in, transferring course:", courseId);
         // Attempt to transfer the guest course
         transferGuestCourseToUser(courseId, user.uid)
@@ -41,7 +44,7 @@ function LoginForm() {
         router.push('/')
       }
     }
-  }, [user, loading, router, courseId])
+  }, [user, loading, router, courseId, redirectUrl])
 
   if (loading) {
     return (

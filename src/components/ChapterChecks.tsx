@@ -147,7 +147,7 @@ function QuizBlock({ quiz, courseId }: { quiz: NonNullable<Quiz>; courseId?: str
       <div className="flex items-start justify-between gap-6 mb-5">
         <div>
           <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
-            Quiz (min 3)
+            Quiz
           </h4>
           <p className="text-[#1A1A1A] text-sm">
             Answer, then reveal to see explanations.

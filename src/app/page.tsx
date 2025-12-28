@@ -153,13 +153,13 @@ export default function Home() {
               className="flex-1 bg-transparent outline-none text-sm text-gray-600 placeholder:text-gray-400"
             />
             <div ref={addMenuRef} className="relative">
-              <button
+              {/* <button
                 aria-label="Add topic"
                 onClick={() => setIsAddMenuOpen((open) => !open)}
                 className="text-3xl text-gray-400 hover:text-gray-600 transition-colors leading-none"
               >
                 +
-              </button>
+              </button> */}
               {isAddMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white text-sm text-gray-800 border border-gray-100 shadow-sm py-2 z-20">
                   <button

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BookOpen, Headphones, Play, Download, StickyNote, GraduationCap } from "lucide-react";
+import { BookOpen, Headphones, Play, StickyNote, GraduationCap } from "lucide-react";
 import { Course } from "@/lib/schema";
 import Link from "next/link";
 import Image from "next/image";
@@ -722,10 +722,6 @@ export default function CourseViewer({
                         </button>
                       </div>
                       <div className="pb-3 flex items-center gap-3">
-                        <button className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
-                          <Download size={18} />
-                        </button>
-
                         <button
                           type="button"
                           onClick={() => setIsSourcesOpen(true)}

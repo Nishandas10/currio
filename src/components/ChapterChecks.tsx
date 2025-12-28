@@ -10,9 +10,11 @@ type Flashcards = NonNullable<NonNullable<Course["modules"]>[number]["sections"]
 export default function ChapterChecks({
   quiz,
   flashcards,
+  courseId,
 }: {
   quiz?: Quiz;
   flashcards?: Flashcards;
+  courseId?: string;
 }) {
   const hasQuiz = Array.isArray(quiz) && quiz.length >= 3;
   const hasFlashcards = Array.isArray(flashcards) && flashcards.length >= 3;
@@ -62,12 +64,12 @@ export default function ChapterChecks({
       <div className="mt-6">
         {hasQuiz && (
           <div className={activeTab === "quiz" ? "block" : "hidden"}>
-            <QuizBlock quiz={quiz!} />
+            <QuizBlock quiz={quiz!} courseId={courseId} />
           </div>
         )}
         {hasFlashcards && (
           <div className={activeTab === "flashcards" ? "block" : "hidden"}>
-            <FlashcardsBlock flashcards={flashcards!} />
+            <FlashcardsBlock flashcards={flashcards!} courseId={courseId} />
           </div>
         )}
       </div>
@@ -75,9 +77,43 @@ export default function ChapterChecks({
   );
 }
 
-function QuizBlock({ quiz }: { quiz: NonNullable<Quiz> }) {
-  const [selected, setSelected] = useState<Record<number, number | null>>({});
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+function QuizBlock({ quiz, courseId }: { quiz: NonNullable<Quiz>; courseId?: string }) {
+  const storageKey = courseId ? `currio:quiz:${courseId}` : null;
+
+  const [selected, setSelected] = useState<Record<number, number | null>>(() => {
+    if (!storageKey) return {};
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored).selected || {} : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [revealed, setRevealed] = useState<Record<number, boolean>>(() => {
+    if (!storageKey) return {};
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored).revealed || {} : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist state changes
+  const updateState = (
+    newSelected: Record<number, number | null>,
+    newRevealed: Record<number, boolean>
+  ) => {
+    setSelected(newSelected);
+    setRevealed(newRevealed);
+    if (storageKey) {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ selected: newSelected, revealed: newRevealed })
+      );
+    }
+  };
 
   const score = useMemo(() => {
     let correct = 0;
@@ -156,7 +192,8 @@ function QuizBlock({ quiz }: { quiz: NonNullable<Quiz> }) {
                       type="button"
                       disabled={isRevealed}
                       onClick={() => {
-                        setSelected((s) => ({ ...s, [idx]: optIdx }));
+                        const newSelected = { ...selected, [idx]: optIdx };
+                        updateState(newSelected, revealed);
                       }}
                       className={
                         "w-full text-left px-4 py-3 rounded-lg border transition-colors text-sm " +
@@ -181,7 +218,8 @@ function QuizBlock({ quiz }: { quiz: NonNullable<Quiz> }) {
                   type="button"
                   className="px-4 py-2 text-sm font-medium bg-[#FBE7A1] hover:bg-[#F7D978] text-[#1A1A1A] rounded-full transition-colors"
                   onClick={() => {
-                    setRevealed((r) => ({ ...r, [idx]: true }));
+                    const newRevealed = { ...revealed, [idx]: true };
+                    updateState(selected, newRevealed);
                   }}
                   disabled={isRevealed || typeof choice !== "number"}
                   aria-disabled={isRevealed || typeof choice !== "number"}
@@ -194,8 +232,9 @@ function QuizBlock({ quiz }: { quiz: NonNullable<Quiz> }) {
                   type="button"
                   className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-full text-[#1A1A1A] hover:bg-gray-50 transition-colors"
                   onClick={() => {
-                    setSelected((s) => ({ ...s, [idx]: null }));
-                    setRevealed((r) => ({ ...r, [idx]: false }));
+                    const newSelected = { ...selected, [idx]: null };
+                    const newRevealed = { ...revealed, [idx]: false };
+                    updateState(newSelected, newRevealed);
                   }}
                 >
                   Reset
@@ -226,9 +265,26 @@ function QuizBlock({ quiz }: { quiz: NonNullable<Quiz> }) {
   );
 }
 
-function FlashcardsBlock({ flashcards }: { flashcards: NonNullable<Flashcards> }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+function FlashcardsBlock({ flashcards, courseId }: { flashcards: NonNullable<Flashcards>; courseId?: string }) {
+  const storageKey = courseId ? `currio:flashcards:${courseId}` : null;
+
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (!storageKey) return 0;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored).currentIndex || 0 : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [isFlipped, setIsFlipped] = useState(false);
+
+  const updateIndex = (newIndex: number) => {
+    setCurrentIndex(newIndex);
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify({ currentIndex: newIndex }));
+    }
+  };
 
   const currentCard = flashcards[currentIndex];
   const nextCard = flashcards[currentIndex + 1];
@@ -236,14 +292,14 @@ function FlashcardsBlock({ flashcards }: { flashcards: NonNullable<Flashcards> }
   const handleNext = () => {
     if (currentIndex < flashcards.length - 1) {
       setIsFlipped(false);
-      setCurrentIndex((prev) => prev + 1);
+      updateIndex(currentIndex + 1);
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
       setIsFlipped(false);
-      setCurrentIndex((prev) => prev - 1);
+      updateIndex(currentIndex - 1);
     }
   };
 

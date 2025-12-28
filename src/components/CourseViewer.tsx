@@ -23,7 +23,7 @@ export default function CourseViewer({
   userPrompt,
   hideHeader = false,
 }: {
-  course: Course;
+  course: Course & { id?: string };
   userPrompt?: string;
   hideHeader?: boolean;
 }) {
@@ -673,6 +673,7 @@ export default function CourseViewer({
                   <ChapterChecks
                     quiz={finalTest.quiz.slice(0, 31)}
                     flashcards={finalTest.flashcards.slice(0, 31)}
+                    courseId={course.id}
                   />
                 </div>
               ) : currentSection ? (

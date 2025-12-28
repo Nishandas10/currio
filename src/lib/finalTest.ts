@@ -19,7 +19,7 @@ function normalizeWhitespace(s: string): string {
  */
 export function buildFinalTestFromCourse(
   course: Course,
-  limit = 15
+  limit = 31
 ): {
   quiz: QuizQuestion[];
   flashcards: Flashcard[];

@@ -32,7 +32,7 @@ export const courseSchema = z.object({
     })
     .optional()
     .describe(
-      "Optional course-wide final test (ideally 15 quiz questions + 15 flashcards)."
+      "Optional course-wide final test (ideally 31 quiz questions + 31 flashcards)."
     ),
   modules: z.array(
     z.object({

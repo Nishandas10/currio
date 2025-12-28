@@ -222,7 +222,7 @@ export default function CourseViewer({
   const currentModule = course?.modules?.[activeModuleIdx];
   const currentSection = currentModule?.sections?.[activeSectionIdx];
 
-  // Aggregate final test content (15 quiz + 15 flashcards) across the full course.
+  // Aggregate final test content (up to 31 quiz + 31 flashcards) across the full course.
   const finalTest = React.useMemo<{
     quiz: NonNullable<Course["finalTest"]>["quiz"];
     flashcards: NonNullable<Course["finalTest"]>["flashcards"];
@@ -234,7 +234,7 @@ export default function CourseViewer({
       };
     }
     try {
-      return buildFinalTestFromCourse(course, 15);
+  return buildFinalTestFromCourse(course, 31);
     } catch {
       return { quiz: [], flashcards: [] };
     }
@@ -670,13 +670,13 @@ export default function CourseViewer({
                     </h2>
                     <div className="border-t border-gray-300 mb-6"></div>
                     <p className="text-gray-600 leading-relaxed">
-                      A course-wide checkpoint: up to <span className="font-medium">15</span> quiz questions and <span className="font-medium">15</span> flashcards pulled from across the full course.
+                      A course-wide checkpoint: up to <span className="font-medium">31</span> quiz questions and <span className="font-medium">31</span> flashcards pulled from across the full course.
                     </p>
                   </div>
 
                   <ChapterChecks
-                    quiz={finalTest.quiz.slice(0, 15)}
-                    flashcards={finalTest.flashcards.slice(0, 15)}
+                    quiz={finalTest.quiz.slice(0, 31)}
+                    flashcards={finalTest.flashcards.slice(0, 31)}
                   />
                 </div>
               ) : currentSection ? (

@@ -209,9 +209,8 @@ export default function CoursePage({ params }: PageProps) {
 
   // Load existing course if NOT generating
   useEffect(() => {
-    // If we have a prompt or are streaming, don't load from Firestore yet.
-    // Also check hasStartedRef to avoid race condition where prompt is removed but object is not yet populated.
-    if (prompt || object || hasStartedRef.current) return;
+    // If we have a prompt, we are about to start generation, so don't load yet.
+    if (prompt) return;
     
     // Wait for auth to settle before deciding whether to check Redis or Firestore
     if (authLoading) return;
@@ -298,8 +297,13 @@ export default function CoursePage({ params }: PageProps) {
   }, [courseIdSlug, prompt, object]);
 
   // Determine which course to display
+  // Prefer loadedCourse if it is a valid course (has modules), as it will contain real-time updates (like podcast audio).
+  // Otherwise, use the streaming object (during generation).
+  // Fallback to placeholder.
+  const isLoadedCourseValid = loadedCourse && (loadedCourse.modules?.length ?? 0) > 0;
+
   let displayCourse: CourseWithMetadata =
-    object ? { ...(object as CourseWithMetadata) } : loadedCourse || (placeholderCourse(courseId) as CourseWithMetadata);
+    isLoadedCourseValid ? loadedCourse! : (object ? { ...(object as CourseWithMetadata) } : (placeholderCourse(courseId) as CourseWithMetadata));
 
   // Ensure the course ID is attached to the display object
   // The AI stream object won't have it, but we know it from the URL/params

@@ -238,3 +238,11 @@ export async function getCourseDoc(
     ...(data.sources ? { sources: data.sources } : {}),
   };
 }
+
+export async function updateCourseVisibility(
+  courseId: string,
+  isPublic: boolean
+) {
+  const ref = doc(firebaseDb, "courses", courseId);
+  await updateDoc(ref, { isPublic });
+}

@@ -303,6 +303,7 @@ export default function CoursePage({ params }: PageProps) {
               const data = snap.data() as FirestoreCourseDoc;
               const course = {
                 ...data.courseData,
+                isPublic: data.isPublic,
                 ...(data.courseThumbnail
                   ? { courseThumbnail: data.courseThumbnail }
                   : {}),
@@ -356,6 +357,7 @@ export default function CoursePage({ params }: PageProps) {
               const data = snap.data() as FirestoreCourseDoc;
               const course = {
                 ...data.courseData,
+                isPublic: data.isPublic,
                 ...(data.courseThumbnail
                   ? { courseThumbnail: data.courseThumbnail }
                   : {}),

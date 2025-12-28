@@ -15,8 +15,10 @@ import WebNotes from "@/components/WebNotes";
 import { buildFinalTestFromCourse } from "@/lib/finalTest";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadPodcastAudio } from "@/lib/storage";
-import { updateLessonAssetUrls } from "@/lib/courses";
+import { updateLessonAssetUrls, updateCourseVisibility } from "@/lib/courses";
 import { ShareCourseDialog } from "@/components/ShareCourseDialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function CourseViewer({
   course,
@@ -75,6 +77,27 @@ export default function CourseViewer({
   const [isSourcesOpen, setIsSourcesOpen] = useState(false);
 
   const courseId = (course as unknown as { id?: string } | undefined)?.id ?? null;
+  const [isPublic, setIsPublic] = useState((course as Course & { isPublic?: boolean }).isPublic ?? false);
+
+  const handlePublicToggle = async (checked: boolean) => {
+    if (!courseId) return;
+    setIsPublic(checked);
+    try {
+      await updateCourseVisibility(courseId, checked);
+    } catch (error) {
+      console.error("Failed to update course visibility:", error);
+      // Revert on error
+      setIsPublic(!checked);
+    }
+  };
+
+  // Sync local state with prop if it changes (e.g. from Firestore update)
+  useEffect(() => {
+    const publicProp = (course as Course & { isPublic?: boolean }).isPublic;
+    if (typeof publicProp === "boolean") {
+      setIsPublic(publicProp);
+    }
+  }, [course]);
 
   // refs for the navigation card and main content so we can scroll selected item into view
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -522,12 +545,24 @@ export default function CourseViewer({
           </div>
           <div className="flex items-center gap-3">
             {user ? (
-              <ShareCourseDialog
-                courseTitle={course.courseTitle}
-                courseDescription={course.courseDescription}
-                courseThumbnail={courseImageUrl}
-                courseSlug={courseId ? `${(course as Course & { slug?: string }).slug || courseId}` : ""}
-              />
+              <>
+                <div className="flex items-center space-x-2 mr-2">
+                  <Switch
+                    id="public-mode"
+                    checked={isPublic}
+                    onCheckedChange={handlePublicToggle}
+                  />
+                  <Label htmlFor="public-mode" className="text-sm font-medium cursor-pointer">
+                    Make Public
+                  </Label>
+                </div>
+                <ShareCourseDialog
+                  courseTitle={course.courseTitle}
+                  courseDescription={course.courseDescription}
+                  courseThumbnail={courseImageUrl}
+                  courseSlug={courseId ? `${(course as Course & { slug?: string }).slug || courseId}` : ""}
+                />
+              </>
             ) : (
               <>
                 <Link 

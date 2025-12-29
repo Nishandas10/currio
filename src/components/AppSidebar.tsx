@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Plus, 
@@ -20,6 +21,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
   const { user, signOutUser } = useAuth();
+  const router = useRouter();
   const [recentCourses, setRecentCourses] = useState<(FirestoreCourseDoc & { id: string })[]>([]);
 
   const fetchCourses = useCallback(() => {
@@ -45,11 +47,11 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 h-16 border-b border-gray-100">
+      <div className="flex items-center justify-between px-2 pt-2 h-16 border-b border-gray-100">
         <div 
           className={cn(
             "flex items-center justify-center transition-transform", 
-            isCollapsed ? "w-full cursor-pointer hover:scale-105" : ""
+            isCollapsed ? "w-full cursor-pointer hover:scale-105" : "ml-3"
           )}
           onClick={isCollapsed ? toggle : undefined}
         >
@@ -73,20 +75,25 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
           <Link
             href="/"
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition-all group",
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
               isCollapsed ? "justify-center" : ""
             )}
             title="New Course"
           >
-            <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-               <Plus size={14} className="text-white" />
-            </div>
+              <div
+                className={cn(
+                  "w-8 h-8 bg-black rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform",
+                  !isCollapsed ? "-ml-1" : ""
+                )}
+              >
+                 <Plus size={17} className="text-white" />
+              </div>
             {!isCollapsed && <span className="font-medium">New Course</span>}
           </Link>
 
           <button
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm transition-all group",
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
               isCollapsed ? "justify-center" : ""
             )}
             title="Search"
@@ -107,7 +114,7 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
                 <Link
                   key={course.id}
                   href={`/course/${course.slug || course.id}`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-white hover:text-black hover:shadow-sm transition-all text-sm"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-black/5 hover:text-black transition-all text-sm"
                 >
                   <span className="truncate">{course.title || "Untitled Course"}</span>
                 </Link>
@@ -122,7 +129,7 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
                 <Link
                   key={course.id}
                   href={`/course/${course.slug || course.id}`}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-gray-500 hover:text-black transition-all"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 text-gray-500 hover:text-black transition-all"
                   title={course.title}
                 >
                   <BookOpen size={16} />
@@ -155,7 +162,10 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
                 {user?.displayName || "User"}
               </p>
               <button 
-                onClick={() => signOutUser()}
+                onClick={async () => {
+                  await signOutUser();
+                  router.push("/");
+                }}
                 className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1 mt-0.5"
               >
                 <LogOut size={12} /> Sign out

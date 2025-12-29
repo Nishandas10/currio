@@ -91,16 +91,17 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
             {!isCollapsed && <span className="font-medium">New Course</span>}
           </Link>
 
-          <button
+          <Link
+            href="/library"
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
               isCollapsed ? "justify-center" : ""
             )}
-            title="Search"
+            title="Library"
           >
             <Search size={20} className="text-gray-500 group-hover:text-black" />
-            {!isCollapsed && <span className="font-medium">Search</span>}
-          </button>
+            {!isCollapsed && <span className="font-medium">Library</span>}
+          </Link>
         </div>
 
         {/* Recent Courses */}

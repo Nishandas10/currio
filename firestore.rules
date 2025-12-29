@@ -48,6 +48,10 @@ service cloud.firestore {
       allow update: if (resource != null && isOwner())
                     || (resource == null && signedIn() && request.resource.data.userId == request.auth.uid);
 
+      // DELETE:
+      // Only the owner can delete
+      allow delete: if isOwner();
+
       // Optional: prevent deletes (recommended)
       allow delete: if false;
     }

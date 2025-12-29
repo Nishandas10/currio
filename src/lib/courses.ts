@@ -4,6 +4,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  deleteDoc,
   getDoc,
   collection,
   query,
@@ -251,6 +252,64 @@ export async function updateCourseVisibility(
 ) {
   const ref = doc(firebaseDb, "courses", courseId);
   await updateDoc(ref, { isPublic });
+}
+
+export async function renameCourse(courseId: string, newTitle: string) {
+  const ref = doc(firebaseDb, "courses", courseId);
+  await updateDoc(ref, {
+    title: newTitle,
+    "courseData.courseTitle": newTitle,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteCourse(courseId: string) {
+  const ref = doc(firebaseDb, "courses", courseId);
+  await deleteDoc(ref);
+}
+
+export async function getUserCourses(userId: string) {
+  try {
+    // Try with orderBy first (requires index)
+    const q = query(
+      collection(firebaseDb, "courses"),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (FirestoreCourseDoc & { id: string })[];
+  } catch (e) {
+    console.warn(
+      "Index missing or query failed, falling back to client-side sort",
+      e
+    );
+    // Fallback: fetch ALL courses for user to ensure we get the newest ones, then sort in memory.
+    const q = query(
+      collection(firebaseDb, "courses"),
+      where("userId", "==", userId)
+    );
+    const snapshot = await getDocs(q);
+    const courses = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (FirestoreCourseDoc & { id: string })[];
+
+    // Sort by createdAt desc
+    return courses.sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getSeconds = (t: any) => {
+        if (!t) return 0;
+        if (typeof t.seconds === "number") return t.seconds;
+        return 0;
+      };
+      const tA = getSeconds(a.createdAt);
+      const tB = getSeconds(b.createdAt);
+      return tB - tA;
+    });
+  }
 }
 
 export async function getUserRecentCourses(userId: string, limitCount = 10) {

@@ -26,6 +26,9 @@ interface ShareCourseDialogProps {
   courseDescription: string;
   courseThumbnail?: string | null;
   courseSlug: string;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ShareCourseDialog({
@@ -33,6 +36,9 @@ export function ShareCourseDialog({
   courseDescription,
   courseThumbnail,
   courseSlug,
+  trigger,
+  open,
+  onOpenChange,
 }: ShareCourseDialogProps) {
   const [copied, setCopied] = useState(false);
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/course/${courseSlug}` : "";
@@ -122,14 +128,16 @@ export function ShareCourseDialog({
   ];
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="rounded-full border border-black/40 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
-        >
-          Share
-        </Button>
+        {trigger || (
+          <Button
+            variant="outline"
+            className="rounded-full border border-black/40 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
+          >
+            Share
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

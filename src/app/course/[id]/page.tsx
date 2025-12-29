@@ -240,16 +240,14 @@ export default function CoursePage({ params }: PageProps) {
     if (prompt && !hasStartedRef.current) {
       hasStartedRef.current = true;
 
-      // If guest starts generation, persist the prompt so we can resume after auth.
-      if (!user) {
-        try {
-          localStorage.setItem(
-            guestInProgressKey,
-            JSON.stringify({ prompt, startedAt: Date.now() })
-          );
-        } catch {
-          // ignore
-        }
+      // Persist the prompt so we can resume if the page is reloaded (for both guests and auth users)
+      try {
+        localStorage.setItem(
+          guestInProgressKey,
+          JSON.stringify({ prompt, startedAt: Date.now() })
+        );
+      } catch {
+        // ignore
       }
 
       if (user) {
@@ -274,30 +272,68 @@ export default function CoursePage({ params }: PageProps) {
   // Resume streaming using the saved prompt.
   useEffect(() => {
     if (authLoading) return;
-    if (!user) return;
+    // if (!user) return; // Allow guests to resume too
     if (prompt) return; // prompt present already triggers generation
     if (hasStartedRef.current) return;
 
-    try {
-      const stored = localStorage.getItem(guestInProgressKey);
-      if (!stored) return;
-      const parsed = JSON.parse(stored) as { prompt?: string };
-      if (!parsed?.prompt) return;
+    // Check if we have a saved prompt in localStorage (for guests or auth users who reloaded)
+    // OR check if we have a prompt in Redis (via API) if localStorage is empty (cross-device/browser case, though less likely for guest)
+    
+    const resumeGeneration = async () => {
+       try {
+        let promptToUse: string | undefined;
 
-      hasStartedRef.current = true;
+        // 1. Try localStorage first
+        const stored = localStorage.getItem(guestInProgressKey);
+        if (stored) {
+          const parsed = JSON.parse(stored) as { prompt?: string };
+          if (parsed?.prompt) {
+            promptToUse = parsed.prompt;
+          }
+        }
 
-      // Create placeholder doc so dependent updates can work
-      void createCoursePlaceholderDoc({
-        courseId,
-        userId: user.uid,
-        prompt: parsed.prompt,
-        isPublic: false,
-      });
+        // 2. If not in localStorage, try fetching metadata from Redis (if we have an ID)
+        if (!promptToUse && courseId) {
+           try {
+             const res = await fetch(`/api/courses/${courseId}/redis`);
+             if (res.ok) {
+               const data = await res.json();
+               // If the course is already fully generated (has modules), we don't need to resume generation.
+               // But if it's partial or we just want to be sure, we can check.
+               // Actually, if it's in Redis, it might be the *result* of a generation.
+               // We need the *prompt* to restart generation if it was interrupted.
+               // The Redis data might contain the prompt if we saved it.
+               if (data.prompt && (!data.modules || data.modules.length === 0)) {
+                  promptToUse = data.prompt;
+               }
+             }
+           } catch {
+             // ignore
+           }
+        }
 
-      submit({ prompt: parsed.prompt });
-    } catch (e) {
-      console.warn("Failed to resume generation after auth:", e);
-    }
+        if (!promptToUse) return;
+
+        hasStartedRef.current = true;
+
+        if (user) {
+          // Create placeholder doc so dependent updates can work
+          void createCoursePlaceholderDoc({
+            courseId,
+            userId: user.uid,
+            prompt: promptToUse,
+            isPublic: false,
+          });
+        }
+
+        submit({ prompt: promptToUse });
+      } catch (e) {
+        console.warn("Failed to resume generation:", e);
+      }
+    };
+
+    void resumeGeneration();
+
   }, [authLoading, user, prompt, courseId, guestInProgressKey, submit]);
 
   // Load existing course if NOT generating

@@ -17,7 +17,7 @@ function generateId(length = 10) {
 }
 
 export default function Home() {
-  const { user, loading, signOutUser } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   
   // UI States
@@ -36,20 +36,13 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <nav className="flex items-center gap-3">
             {user ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await signOutUser();
-                    router.refresh();
-                  } catch (e) {
-                    console.error("Logout error:", e);
-                  }
-                }}
-                className="rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium text-[#1A1A1A] hover:bg-black/5 transition-colors"
-              >
-                Logout
-              </button>
+              // For authenticated users, the sidebar handles logout.
+              // We can hide the logout button here or keep it as a secondary option.
+              // The user requested "Currio stays outside the sidebar", which implies the header is visible.
+              // But if the sidebar has logout, maybe we don't need it here.
+              // However, to be safe and consistent with "outside sidebar", I'll leave the header but maybe hide the logout button if it's redundant?
+              // Actually, let's just hide the logout button for auth users in the header since it's in the sidebar.
+              null
             ) : (
               <>
                 <Link
@@ -70,7 +63,7 @@ export default function Home() {
         </div>
       </div>
     ),
-    [router, signOutUser, user]
+    [user]
   );
 
   // --- HANDLER ---

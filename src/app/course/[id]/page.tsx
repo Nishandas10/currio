@@ -82,15 +82,20 @@ export default function CoursePage({ params }: PageProps) {
   }, [user, authLoading, prompt, courseId, isGuestLimitReached]);
   const [uploadedCourseThumbnail, setUploadedCourseThumbnail] = useState<string | null>(null);
   const [webSources, setWebSources] = useState<WebSource[] | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const hasStartedRef = useRef(false);
   const imageStartedRef = useRef(false);
 
   const guestInProgressKey = `guest_generation_in_progress:${courseId}`;
 
   // AI Generation Hook
-  const { object, submit } = useObject({
+  const { object, submit, isLoading, error } = useObject({
     api: "/api/generate",
     schema: courseSchema,
+    onError: (err) => {
+      console.error("Generation error:", err);
+      setGenerationError("Failed to generate course. Please try again.");
+    },
     fetch: async (req, init) => {
       const headers = new Headers(init?.headers);
       if (user) headers.set("x-skip-redis", "1");
@@ -150,6 +155,9 @@ export default function CoursePage({ params }: PageProps) {
             });
             await addCourseToUser({ uid: user.uid, courseId });
 
+            // Notify sidebar to refresh recent courses
+            window.dispatchEvent(new Event("course_created"));
+
             // Update URL to slug silently (without triggering a re-render/navigation)
             window.history.replaceState(null, "", `/course/${slug}`);
           } catch (e) {
@@ -164,6 +172,16 @@ export default function CoursePage({ params }: PageProps) {
       }
     }
   });
+
+  // Timeout check: If loading but no object after 60s, show error/retry
+  useEffect(() => {
+    if (isLoading && !object) {
+      const timer = setTimeout(() => {
+        setGenerationError("Generation is taking longer than expected. Please retry.");
+      }, 60000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, object]);
 
   // Kick off thumbnail generation ASAP (in parallel with streaming), once we have a title and description.
   useEffect(() => {
@@ -397,6 +415,30 @@ export default function CoursePage({ params }: PageProps) {
   // Otherwise, use the streaming object (during generation).
   // Fallback to placeholder.
   const isLoadedCourseValid = loadedCourse && (loadedCourse.modules?.length ?? 0) > 0;
+
+  if (generationError || error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+        <div className="max-w-md text-center space-y-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Generation Failed</h2>
+          <p className="text-gray-600">
+            {generationError || (error ? "An error occurred during generation." : "Something went wrong.")}
+          </p>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Reload Page
+            </Button>
+            <Link href="/">
+              <Button>Go Home</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   let displayCourse: CourseWithMetadata =
     isLoadedCourseValid ? loadedCourse! : (object ? { ...(object as CourseWithMetadata) } : (placeholderCourse(courseId) as CourseWithMetadata));

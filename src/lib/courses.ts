@@ -34,6 +34,7 @@ export type FirestoreCourseDoc = {
   /** Web search sources used during generation. */
   sources?: WebSource[];
   courseData: Course; // Store the complete Course object
+  status?: "generating" | "ready";
   createdAt: unknown; // server timestamp
   updatedAt: unknown; // server timestamp
 };
@@ -75,6 +76,7 @@ export async function createCourseDoc(params: {
   isPublic?: boolean;
   courseThumbnail?: string;
   sources?: WebSource[];
+  status?: "generating" | "ready";
 }) {
   const {
     courseId,
@@ -84,6 +86,7 @@ export async function createCourseDoc(params: {
     isPublic = false,
     courseThumbnail,
     sources,
+    status = "ready",
   } = params;
   const title = course.courseTitle ?? "";
   const slug = `${slugify(title)}-${courseId}`;
@@ -100,6 +103,7 @@ export async function createCourseDoc(params: {
     ...(courseThumbnail ? { courseThumbnail } : {}),
     ...(sources ? { sources } : {}),
     courseData: course,
+    status,
     createdAt: serverTimestamp(), // This will overwrite on merge - might be OK
     updatedAt: serverTimestamp(),
   };

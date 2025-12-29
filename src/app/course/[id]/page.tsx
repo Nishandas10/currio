@@ -154,6 +154,7 @@ export default function CoursePage({ params }: PageProps) {
               course: object as Course,
               isPublic: false,
               ...(webSources ? { sources: webSources } : {}),
+              status: "ready",
             });
             await addCourseToUser({ uid: user.uid, courseId });
 

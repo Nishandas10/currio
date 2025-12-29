@@ -29,7 +29,7 @@ export default function Home() {
 
   const header = useMemo(
     () => (
-      <div className="w-full flex items-center justify-between px-4 md:px-8 py-6">
+      <div className="w-full flex items-center justify-between px-4 md:px-8 h-15 pt-2">
         <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">
           Currio
         </Link>
@@ -125,7 +125,7 @@ export default function Home() {
       <main className="flex-1 px-6 pb-16">
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto text-center mt-20">
+      <section className="max-w-4xl mx-auto text-center mt-12">
         <div className="mb-6 flex justify-center">
           <div className="w-20 h-20 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
             <span className="text-6xl leading-none" role="img" aria-label="sloth">🦥</span>

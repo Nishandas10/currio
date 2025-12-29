@@ -16,6 +16,7 @@ import {
   type FirestoreCourseDoc,
 } from "@/lib/courses";
 import { addCourseToUser } from "@/lib/users";
+import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer";
 import { uploadCourseImage } from "@/lib/storage";
 import { doc, onSnapshot } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
@@ -85,6 +86,7 @@ export default function CoursePage({ params }: PageProps) {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const hasStartedRef = useRef(false);
   const imageStartedRef = useRef(false);
+  const transferAttemptedRef = useRef<string | null>(null);
 
   const guestInProgressKey = `guest_generation_in_progress:${courseId}`;
 
@@ -342,6 +344,22 @@ export default function CoursePage({ params }: PageProps) {
                       redisCourse.courseImage || redisCourse.courseThumbnail,
                   };
                   setLoadedCourse(course);
+
+                  // If we found it in Redis but not Firestore, and we are logged in,
+                  // we should transfer it to the user so it persists.
+                  if (user && user.uid && transferAttemptedRef.current !== courseId) {
+                    transferAttemptedRef.current = courseId;
+                    console.log("Found guest course in Redis, transferring to user...", courseId);
+                    transferGuestCourseToUser(courseId, user.uid)
+                      .then((result) => {
+                        if (result) {
+                          console.log("Transfer successful, new slug:", result);
+                        }
+                      })
+                      .catch((err) => {
+                        console.error("Transfer failed:", err);
+                      });
+                  }
                 }
               } catch (e) {
                 console.warn("Failed to load from Redis fallback:", e);

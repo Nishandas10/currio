@@ -6,7 +6,8 @@ import AppSidebar from "@/components/AppSidebar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  // Default sidebar to collapsed by default for a compact first view
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   // Only show sidebar for authenticated users
   const shouldShowSidebar = !!user && !loading;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -7,12 +7,19 @@ import {
   Plus, 
   Search, 
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   LogOut,
   User,
-  BookOpen
+  BookOpen,
+  MessageSquare,
+  Mail,
+  FileText,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getUserRecentCourses, FirestoreCourseDoc } from "@/lib/courses";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 
 interface AppSidebarProps {
   isCollapsed: boolean;
@@ -23,10 +30,33 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
   const { user, signOutUser } = useAuth();
   const router = useRouter();
   const [recentCourses, setRecentCourses] = useState<(FirestoreCourseDoc & { id: string })[]>([]);
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchCourses = useCallback(() => {
     if (user) {
-      getUserRecentCourses(user.uid).then(setRecentCourses).catch(console.error);
+      // Fetch more to ensure we have enough valid ones after filtering
+      getUserRecentCourses(user.uid, 20)
+        .then((courses) => {
+          const validCourses = courses
+            .filter((course) => course.title && course.slug)
+            .slice(0, 10);
+          setRecentCourses(validCourses);
+        })
+        .catch(console.error);
     }
   }, [user]);
 
@@ -70,7 +100,7 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
       </div>
 
       {/* Main Menu */}
-      <div className="flex-1 py-6 px-3 space-y-6 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 py-4 px-3 space-y-6 overflow-y-auto custom-scrollbar">
         <div className="space-y-2">
           <Link
             href="/"
@@ -106,7 +136,7 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
 
         {/* Recent Courses */}
         {!isCollapsed && recentCourses.length > 0 && (
-          <div className="pt-2">
+          <div className="pt-0">
             <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
               Recent
             </h3>
@@ -141,8 +171,51 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
       </div>
 
       {/* User Profile (Bottom) */}
-      <div className="p-4 border-t border-gray-200">
-        <div className={cn("flex items-center gap-3", isCollapsed ? "justify-center" : "")}>
+  <div className="p-2 border-t border-gray-200 relative" ref={menuRef}>
+        {isMenuOpen && (
+          <div className="absolute left-full bottom-0 ml-0 w-64 bg-white rounded-xl shadow-xl border border-gray-300 overflow-hidden z-50 animate-in fade-in slide-in-from-left-2">
+             <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+               <p className="text-sm font-medium text-gray-900 truncate">{user?.displayName || "User"}</p>
+               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+             </div>
+             <div className="p-1 space-y-0.5">
+               <a href="mailto:support@currio.co" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                 <Mail size={16} className="text-gray-400" /> Contact Us
+               </a>
+               <button 
+                 onClick={() => { setIsMenuOpen(false); setIsFeedbackOpen(true); }}
+                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left"
+               >
+                 <MessageSquare size={16} className="text-gray-400" /> Feedback
+               </button>
+               <Link href="/privacy-policy" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                 <Shield size={16} className="text-gray-400" /> Privacy Policy
+               </Link>
+               <Link href="/terms-conditions" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                 <FileText size={16} className="text-gray-400" /> Terms & Conditions
+               </Link>
+             </div>
+             <div className="p-1 border-t border-gray-100">
+                <button 
+                  onClick={async () => {
+                    await signOutUser();
+                    router.push("/");
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+                >
+                  <LogOut size={16} /> Sign out
+                </button>
+             </div>
+          </div>
+        )}
+
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className={cn(
+            "flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-200 transition-colors", 
+            isCollapsed ? "justify-center" : ""
+          )}
+        >
           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden relative">
             {user?.photoURL ? (
               <Image 
@@ -158,23 +231,28 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
           </div>
           
           {!isCollapsed && (
-            <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex-1 min-w-0 overflow-hidden text-left">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user?.displayName || "User"}
               </p>
-              <button 
-                onClick={async () => {
-                  await signOutUser();
-                  router.push("/");
-                }}
-                className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1 mt-0.5"
-              >
-                <LogOut size={12} /> Sign out
-              </button>
+              <p className="text-xs text-gray-500 truncate">
+                Free Plan
+              </p>
             </div>
           )}
-        </div>
+          {!isCollapsed && (
+            <div className="ml-auto">
+              {isMenuOpen ? (
+                <ChevronUp size={16} className="text-gray-400" />
+              ) : (
+                <ChevronDown size={16} className="text-gray-400" />
+              )}
+            </div>
+          )}
+        </button>
       </div>
+      
+      <FeedbackDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
     </aside>
   );
 }

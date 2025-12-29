@@ -42,12 +42,12 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
   }, [fetchCourses]);  return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-[#F8F6F3] border-r border-gray-200 transition-all duration-300 flex flex-col",
+        "fixed left-0 top-0 z-40 h-screen bg-[#ffffff] border-r border-gray-300 transition-all duration-300 flex flex-col",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-2 pt-2 h-16 border-b border-gray-100">
+      <div className="flex items-center justify-between px-2 pt-2 h-16 border-b border-gray-200">
         <div 
           className={cn(
             "flex items-center justify-center transition-transform", 

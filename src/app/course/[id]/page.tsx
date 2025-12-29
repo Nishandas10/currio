@@ -18,7 +18,7 @@ import {
 import { addCourseToUser } from "@/lib/users";
 import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer";
 import { uploadCourseImage } from "@/lib/storage";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, getDoc } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -294,8 +294,22 @@ export default function CoursePage({ params }: PageProps) {
 
         // 2. If not in localStorage, try fetching metadata from Redis (if we have an ID)
         if (!promptToUse && courseId) {
-           try {
-             const res = await fetch(`/api/courses/${courseId}/redis`);
+          // If authenticated, check Firestore first. If the course exists there,
+          // we don't need to resume generation from Redis.
+          if (user) {
+            try {
+              const docRef = doc(firebaseDb, "courses", courseId);
+              const snap = await getDoc(docRef);
+              if (snap.exists()) {
+                return;
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          try {
+            const res = await fetch(`/api/courses/${courseId}/redis`);
              if (res.ok) {
                const data = await res.json();
                // If the course is already fully generated (has modules), we don't need to resume generation.

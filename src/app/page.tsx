@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ArrowUp } from "lucide-react"
 import Image from "next/image"
 import { subscribeToPublicCourses, FirestoreCourseDoc } from "@/lib/courses";
+import { SidebarToggleButton } from "@/components/SidebarToggleButton";
+import ClientLayout from "@/components/ClientLayout";
 
 function generateId(length = 10) {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -39,9 +41,12 @@ export default function Home() {
   const header = useMemo(
     () => (
       <div className="w-full flex items-center justify-between px-4 md:px-8 h-15 pt-2">
-        <Link href="/" className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">
-          Currio
-        </Link>
+        <div className="flex items-center gap-2">
+          {user && <SidebarToggleButton />}
+          <Link href="/" className={user ? "hidden md:block text-xl md:text-2xl font-bold tracking-tight text-gray-900" : "text-xl md:text-2xl font-bold tracking-tight text-gray-900"}>
+            Currio
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           <nav className="flex items-center gap-3">
             {user ? (
@@ -127,11 +132,14 @@ export default function Home() {
   // If user is authenticated, we still show the home page; UI will adapt (Logout vs Sign in/up)
 
   return (
-    <div className="min-h-screen bg-[#fcfaf8] flex flex-col">
-      {/* Top bar: Brand + Auth - Fixed at top */}
-      {header}
+    <ClientLayout>
+      <div className="h-full bg-[#fcfaf8] flex flex-col overflow-hidden">
+        {/* Top bar: Brand + Auth - Fixed at top */}
+        <div className="shrink-0">
+          {header}
+        </div>
 
-      <main className="flex-1 px-6 pb-16">
+        <main className="flex-1 overflow-auto px-6 pb-16">
 
       {/* Hero */}
       <section className="max-w-4xl mx-auto text-center mt-12">
@@ -260,6 +268,7 @@ export default function Home() {
         )}
       </section>
     </main>
-    </div>
+      </div>
+    </ClientLayout>
   )
 }

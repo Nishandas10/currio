@@ -587,8 +587,8 @@ export default function CourseViewer({
       {!hideHeader && (
         <header className="flex items-center justify-between px-6 py-4 border-b bg-white sticky top-0 z-50">
           <div className="flex items-center gap-2">
-            <SidebarToggleButton />
-            <Link href="/" className="hidden md:block text-2xl font-serif font-bold tracking-tight">Currio</Link>
+            {user && <SidebarToggleButton />}
+            <Link href="/" className={user ? "hidden md:block text-2xl font-serif font-bold tracking-tight" : "text-2xl font-serif font-bold tracking-tight"}>Currio</Link>
           </div>
           <div className="flex items-center gap-3 ml-auto md:ml-0">
             {user ? (

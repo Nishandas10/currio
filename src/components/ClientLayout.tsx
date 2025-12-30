@@ -16,7 +16,7 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
       />
       
       <main 
-        className={`flex-1 transition-all duration-300 ease-in-out h-screen overflow-hidden ${
+        className={`flex-1 transition-all duration-300 ease-in-out h-screen overflow-auto ${
           isSidebarCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-64"
         }`}
       >
@@ -39,7 +39,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <ClientLayoutInner>{children}</ClientLayoutInner>
         </div>
       ) : (
-        <>{children}</>
+        <div className="h-screen bg-white overflow-auto">
+          {children}
+        </div>
       )}
     </SidebarProvider>
   );

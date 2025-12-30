@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
 import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer"
+import { doc, getDoc } from "firebase/firestore"
+import { firebaseDb } from "@/lib/firebase"
 
 function LoginForm() {
   const [email, setEmail] = useState("")
@@ -24,22 +26,40 @@ function LoginForm() {
       if (redirectUrl) {
         router.push(redirectUrl)
       } else if (courseId) {
-        console.log("User logged in, transferring course:", courseId);
-        // Attempt to transfer the guest course
-        transferGuestCourseToUser(courseId, user.uid)
-          .then((slug) => {
-            console.log("Transfer result slug:", slug);
+        console.log("User logged in, checking course type:", courseId);
+        
+        // First check if this is a public course in Firestore (not a guest-created course in Redis)
+        // If it exists in Firestore, it's a public course - just redirect to it
+        const checkAndRedirect = async () => {
+          try {
+            const courseRef = doc(firebaseDb, "courses", courseId);
+            const courseSnap = await getDoc(courseRef);
+            
+            if (courseSnap.exists()) {
+              // This is a public course in Firestore, just redirect to it
+              const courseData = courseSnap.data();
+              const slug = courseData?.slug || courseId;
+              console.log("Public course found in Firestore, redirecting to:", slug);
+              router.push(`/course/${slug}`);
+              return;
+            }
+            
+            // Not in Firestore, try to transfer from Redis (guest-created course)
+            console.log("Course not in Firestore, attempting transfer from Redis");
+            const slug = await transferGuestCourseToUser(courseId, user.uid);
             if (slug) {
-              router.push(`/course/${slug}`)
+              router.push(`/course/${slug}`);
             } else {
               console.warn("Transfer failed or no slug returned, redirecting to home");
-              router.push('/')
+              router.push('/');
             }
-          })
-          .catch((err) => {
-            console.error("Transfer error:", err);
+          } catch (err) {
+            console.error("Error checking course:", err);
             router.push('/');
-          });
+          }
+        };
+        
+        void checkAndRedirect();
       } else {
         router.push('/')
       }

@@ -8,6 +8,8 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
 import { Eye, EyeOff } from 'lucide-react'
 import { transferGuestCourseToUser } from "@/lib/guestCourseTransfer"
+import { doc, getDoc } from "firebase/firestore"
+import { firebaseDb } from "@/lib/firebase"
 
 function SignupForm() {
   const [email, setEmail] = useState("")
@@ -26,13 +28,38 @@ function SignupForm() {
       if (redirectUrl) {
         router.push(redirectUrl)
       } else if (courseId) {
-        transferGuestCourseToUser(courseId, user.uid).then((slug) => {
-          if (slug) {
-            router.push(`/course/${slug}`)
-          } else {
-            router.push('/')
+        // First check if this is a public course in Firestore (not a guest-created course in Redis)
+        // If it exists in Firestore, it's a public course - just redirect to it
+        const checkAndRedirect = async () => {
+          try {
+            const courseRef = doc(firebaseDb, "courses", courseId);
+            const courseSnap = await getDoc(courseRef);
+            
+            if (courseSnap.exists()) {
+              // This is a public course in Firestore, just redirect to it
+              const courseData = courseSnap.data();
+              const slug = courseData?.slug || courseId;
+              console.log("Public course found in Firestore, redirecting to:", slug);
+              router.push(`/course/${slug}`);
+              return;
+            }
+            
+            // Not in Firestore, try to transfer from Redis (guest-created course)
+            console.log("Course not in Firestore, attempting transfer from Redis");
+            const slug = await transferGuestCourseToUser(courseId, user.uid);
+            if (slug) {
+              router.push(`/course/${slug}`);
+            } else {
+              console.warn("Transfer failed, redirecting to home");
+              router.push('/');
+            }
+          } catch (err) {
+            console.error("Error checking course:", err);
+            router.push('/');
           }
-        })
+        };
+        
+        void checkAndRedirect();
       } else {
         router.push('/')
       }

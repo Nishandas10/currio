@@ -137,60 +137,71 @@ export default function CourseViewer({
     setIsGeneratingImage(false);
   }, [courseThumbnail]);
 
-  // Sync sources from prop if it changes (e.g. becomes available during streaming)
+  // Sync sources from prop if it changes (e.g. becomes available during streaming or from Firestore)
   useEffect(() => {
     if (initialSources && initialSources.length > 0) {
       setSources(initialSources);
+      setSourcesLoading(false); // Stop loading if we got sources from props
     }
   }, [initialSources]);
 
   // Fetch web sources (best-effort). Only works once we have a stable courseId.
-  // For authenticated users with initial sources, skip the fetch.
+  // For public courses, sources should come via the course prop (from Firestore).
+  // This fetch is mainly for guest-created courses still in Redis.
   useEffect(() => {
     if (!courseId) return;
-    if (initialSources && initialSources.length > 0) return; // Already have sources
+    if (initialSources && initialSources.length > 0) return; // Already have sources from course prop
     if (authLoading) return; // Wait for auth to resolve
-    if (user) return; // Authenticated users get sources via course metadata
+    if (user) return; // Authenticated users get sources via Firestore (course prop)
     
-    let cancelled = false;
+    // For guests: sources might come from Firestore (public courses) or need to be fetched from Redis
+    // If the course has been loaded but still no sources, try fetching
+    // However, we should wait a bit to see if sources come via the course prop first
+    const timer = setTimeout(() => {
+      // Double-check that sources didn't arrive via prop during the delay
+      if (initialSources && initialSources.length > 0) return;
+      
+      let cancelled = false;
 
-    setSourcesLoading(true);
-    setSourcesError(null);
+      setSourcesLoading(true);
+      setSourcesError(null);
 
-    const url = new URL("/api/courses/sources", window.location.origin);
-    url.searchParams.set("courseId", courseId);
+      const url = new URL("/api/courses/sources", window.location.origin);
+      url.searchParams.set("courseId", courseId);
 
-    fetch(url.toString(), {
-      method: "GET",
-      headers: { accept: "application/json" },
-    })
-      .then((res) => {
-        if (cancelled) return;
-        return res.json();
+      fetch(url.toString(), {
+        method: "GET",
+        headers: { accept: "application/json" },
       })
-      .then((data) => {
-        if (cancelled) return;
-        if (data?.success && Array.isArray(data?.results)) {
-          setSources(data.results as WebSource[]);
-        } else {
+        .then((res) => {
+          if (cancelled) return;
+          return res.json();
+        })
+        .then((data) => {
+          if (cancelled) return;
+          if (data?.success && Array.isArray(data?.results)) {
+            setSources(data.results as WebSource[]);
+          } else {
+            setSources([]);
+          }
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setSourcesError(e instanceof Error ? e.message : "Failed to load sources");
           setSources([]);
-        }
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setSourcesError(e instanceof Error ? e.message : "Failed to load sources");
-        setSources([]);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setSourcesLoading(false);
-      });
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setSourcesLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, 500); // Wait 500ms to give sources from Firestore a chance to arrive
 
     return () => {
-      cancelled = true;
-      // If we unmount or deps change, ensure we don't leave loading state stuck true
-      // But we can't call setSourcesLoading here if unmounted.
-      // The next effect run will reset it if needed, or we rely on initial state.
+      clearTimeout(timer);
     };
   }, [courseId, user, authLoading, initialSources]);
 

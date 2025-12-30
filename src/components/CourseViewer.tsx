@@ -19,6 +19,8 @@ import { updateLessonAssetUrls, updateCourseVisibility } from "@/lib/courses";
 import { ShareCourseDialog } from "@/components/ShareCourseDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function CourseViewer({
   course,
@@ -78,16 +80,34 @@ export default function CourseViewer({
 
   const courseId = (course as unknown as { id?: string } | undefined)?.id ?? null;
   const [isPublic, setIsPublic] = useState((course as Course & { isPublic?: boolean }).isPublic ?? false);
+  const [showPermissionError, setShowPermissionError] = useState(false);
 
   const handlePublicToggle = async (checked: boolean) => {
     if (!courseId) return;
+    
+    // Check if user is the creator
+    const courseUserId = (course as Course & { userId?: string }).userId;
+    if (user && courseUserId && user.uid !== courseUserId) {
+      setShowPermissionError(true);
+      return;
+    }
+    
     setIsPublic(checked);
     try {
       await updateCourseVisibility(courseId, checked);
     } catch (error) {
-      console.error("Failed to update course visibility:", error);
       // Revert on error
       setIsPublic(!checked);
+      
+      // Check if it's a permission error and handle silently with dialog
+      if (error instanceof Error && (error.message.includes("permission") || error.message.includes("insufficient"))) {
+        setShowPermissionError(true);
+        // Don't log permission errors to console since we show a user-friendly dialog
+        return;
+      }
+      
+      // Log other types of errors (network, etc.)
+      console.error("Failed to update course visibility:", error);
     }
   };
 
@@ -1130,6 +1150,23 @@ export default function CourseViewer({
           canGoNext={canGoNext}
         />
       )}
+
+      {/* Permission Error Dialog */}
+      <Dialog open={showPermissionError} onOpenChange={setShowPermissionError}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Permission Denied</DialogTitle>
+            <DialogDescription>
+              Only the course owner can change this setting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setShowPermissionError(false)}>
+              Okay
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
   </div>
   );
 }

@@ -102,7 +102,7 @@ export default function ExplorePage() {
             {filteredCourses.map((course) => (
               <Link
                 key={course.id}
-                href={`/course/${course.id}`}
+                href={`/course/${course.slug || course.id}`}
                 className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
               >
                 <div className="relative h-40 w-full bg-gray-100">

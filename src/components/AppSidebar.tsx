@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { 
   Plus, 
   Search, 
+  Globe,
   ChevronLeft,
   ChevronUp,
   ChevronDown,
@@ -119,6 +120,18 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
                  <Plus size={17} className="text-white" />
               </div>
             {!isCollapsed && <span className="font-medium">New Course</span>}
+          </Link>
+
+          <Link
+            href="/explore"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
+              isCollapsed ? "justify-center" : ""
+            )}
+            title="Explore"
+          >
+            <Globe size={20} className="text-gray-500 group-hover:text-black" />
+            {!isCollapsed && <span className="font-medium">Explore</span>}
           </Link>
 
           <Link

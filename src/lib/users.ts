@@ -2,6 +2,7 @@ import type { User } from "firebase/auth";
 import {
   arrayUnion,
   doc,
+  getDoc,
   increment,
   serverTimestamp,
   setDoc,
@@ -61,4 +62,20 @@ export async function addCourseToUser(params: {
     coursesCreated: increment(1),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Fetches the user profile document for the given userId.
+ * @param userId - The ID of the user whose profile to fetch.
+ * @returns A promise that resolves to the user profile document, or null if not found.
+ */
+export async function getUserProfile(
+  userId: string
+): Promise<UserProfileDoc | null> {
+  const ref = doc(firebaseDb, "users", userId);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    return snap.data() as UserProfileDoc;
+  }
+  return null;
 }

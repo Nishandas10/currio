@@ -7,8 +7,11 @@ service cloud.firestore {
     // users/{uid}
     // ---------------------------
     match /users/{userId} {
-      // Only the signed-in user can read/write their own profile
-      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      // Allow anyone to read user profiles (needed for Explore page to show creator names)
+      allow get: if true;
+      
+      // Only the signed-in user can list, create, or update their own profile
+      allow list, create, update: if request.auth != null && request.auth.uid == userId;
 
       // Optional: prevent deletes (recommended)
       allow delete: if false;

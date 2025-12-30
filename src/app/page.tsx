@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import Link from "next/link";
 import { ArrowUp } from "lucide-react"
 import Image from "next/image"
+import { subscribeToPublicCourses, FirestoreCourseDoc } from "@/lib/courses";
 
 function generateId(length = 10) {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -26,6 +27,14 @@ export default function Home() {
   
   // --- NEW LOGIC STATE ---
   const [input, setInput] = useState("") 
+  const [recentPublicCourses, setRecentPublicCourses] = useState<(FirestoreCourseDoc & { id: string })[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPublicCourses((courses) => {
+      setRecentPublicCourses(courses);
+    }, 3);
+    return () => unsubscribe();
+  }, []); 
 
   const header = useMemo(
     () => (
@@ -198,69 +207,57 @@ export default function Home() {
 
       {/* Trending / Suggestions */}
       <section className="max-w-2xl mx-auto mt-12 space-y-6">
-        {/* Group 1 */}
-        <div>
-          <div className="flex items-center gap-2 text-gray-500 mb-3 text-sm">
-            <span>↗</span>
-            <span>Art of Spending Money</span>
-          </div>
-          <button
-            onClick={() => {
-                setInput("Mastering Your Money");
-                // Optional: Auto-submit on click?
-                // submit({ prompt: "Mastering Your Money" });
-            }}
-            className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-3 py-3 hover:ring-black/10 transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-linear-to-br from-orange-300 to-yellow-400 grid place-items-center overflow-hidden">
-                <Image src="/window.svg" alt="topic" width={20} height={20} className="opacity-90" />
-              </div>
-              <div className="text-sm font-normal text-[#3A3A3A]">Mastering Your Money</div>
-            </div>
-            <div className="text-xl text-gray-300 group-hover:text-gray-400 transition-colors">›</div>
-          </button>
-        </div>
+        {recentPublicCourses.map((course) => {
+          const parts = course.title.split(":");
+          const mainTitle = parts[0].trim();
+          const subTitle = parts.length > 1 ? parts.slice(1).join(":").trim() : mainTitle;
 
-        {/* Group 2 */}
-        <div>
-          <div className="flex items-center gap-2 text-gray-500 mb-3 text-sm">
-            <span>↗</span>
-            <span>Terminology of watches</span>
-          </div>
-          <button
-            onClick={() => setInput("Watch Terminology Explained")}
-            className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-3 py-3 hover:ring-black/10 transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-linear-to-br from-orange-200 to-orange-300 grid place-items-center overflow-hidden">
-                <Image src="/file.svg" alt="topic" width={20} height={20} className="opacity-90" />
+          return (
+            <div key={course.id}>
+              <div className="flex items-center gap-2 text-gray-500 mb-3 text-sm">
+                <span>↗</span>
+                <span>{mainTitle}</span>
               </div>
-              <div className="text-sm font-normal text-[#3A3A3A]">Watch Terminology Explained</div>
+              <Link
+                href={`/course/${course.slug || course.id}`}
+                className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-3 py-3 hover:ring-black/10 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-lg bg-gray-100 grid place-items-center overflow-hidden relative">
+                    {course.courseThumbnail ? (
+                      <Image
+                        src={course.courseThumbnail}
+                        alt={course.title}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg">📚</span>
+                    )}
+                  </div>
+                  <div className="text-sm font-normal text-[#3A3A3A] line-clamp-1">
+                    {subTitle}
+                  </div>
+                </div>
+                <div className="text-xl text-gray-300 group-hover:text-gray-400 transition-colors">
+                  ›
+                </div>
+              </Link>
             </div>
-            <div className="text-xl text-gray-300 group-hover:text-gray-400 transition-colors">›</div>
-          </button>
-        </div>
+          );
+        })}
 
-        {/* Group 3 */}
-        <div>
-          <div className="flex items-center gap-2 text-gray-500 mb-3 text-sm">
-            <span>↗</span>
-            <span>mixology</span>
+        {recentPublicCourses.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FBE7A1] hover:bg-[#F7D978] border border-gray-300 text-[#1A1A1A] transition-all shadow-sm text-sm font-medium"
+            >
+              Explore courses created by the community
+            </Link>
           </div>
-          <button
-             onClick={() => setInput("Cocktail Mixology Basics")}
-            className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/5 px-3 py-3 hover:ring-black/10 transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-linear-to-br from-purple-200 to-pink-200 grid place-items-center overflow-hidden">
-                <Image src="/globe.svg" alt="topic" width={20} height={20} className="opacity-90" />
-              </div>
-              <div className="text-sm font-normal text-[#3A3A3A]">Cocktail Mixology Basics</div>
-            </div>
-            <div className="text-xl text-gray-300 group-hover:text-gray-400 transition-colors">›</div>
-          </button>
-        </div>
+        )}
       </section>
     </main>
     </div>

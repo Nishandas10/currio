@@ -67,6 +67,18 @@ export default function CoursePage({ params }: PageProps) {
   useEffect(() => {
     if (authLoading || user) return;
 
+    // Only enforce guest limit during *course creation/generation*.
+    // Viewing an existing public course (no prompt) should never be blocked.
+    const isCreating = (() => {
+      if (prompt) return true;
+      try {
+        return !!localStorage.getItem(`guest_generation_in_progress:${courseId}`);
+      } catch {
+        return false;
+      }
+    })();
+    if (!isCreating) return;
+
     const stored = localStorage.getItem("guest_created_courses");
     const guestCourses: string[] = stored ? JSON.parse(stored) : [];
 
@@ -294,18 +306,16 @@ export default function CoursePage({ params }: PageProps) {
 
         // 2. If not in localStorage, try fetching metadata from Redis (if we have an ID)
         if (!promptToUse && courseId) {
-          // If authenticated, check Firestore first. If the course exists there,
+          // Check Firestore first. If the course exists there,
           // we don't need to resume generation from Redis.
-          if (user) {
-            try {
-              const docRef = doc(firebaseDb, "courses", courseId);
-              const snap = await getDoc(docRef);
-              if (snap.exists()) {
-                return;
-              }
-            } catch {
-              // ignore
+          try {
+            const docRef = doc(firebaseDb, "courses", courseId);
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+              return;
             }
+          } catch {
+            // ignore
           }
 
           try {
@@ -418,28 +428,9 @@ export default function CoursePage({ params }: PageProps) {
             }
           });
         } else {
-          // Guest: Try Redis first
-          try {
-            const res = await fetch(`/api/courses/${courseId}/redis`);
-            if (res.ok) {
-              const redisCourse = await res.json();
-              const course = {
-                ...redisCourse,
-                courseThumbnail:
-                  redisCourse.courseImage || redisCourse.courseThumbnail,
-              };
-              setLoadedCourse(course);
-              return; // Found in Redis, no need to check Firestore
-            }
-          } catch (e) {
-            console.warn("Failed to load from Redis:", e);
-          }
-
-          // Fallback to Firestore (e.g. public shared link) if Redis fails/expired
-          // For guests viewing public links, we can also use onSnapshot or just getDoc.
-          // Using onSnapshot ensures they see updates too.
+          // Guest: Try Firestore first (for public courses)
           const ref = doc(firebaseDb, "courses", courseId);
-          unsubscribe = onSnapshot(ref, (snap) => {
+          unsubscribe = onSnapshot(ref, async (snap) => {
             if (snap.exists()) {
               const data = snap.data() as FirestoreCourseDoc;
               const course = {
@@ -451,6 +442,22 @@ export default function CoursePage({ params }: PageProps) {
                 ...(data.sources ? { sources: data.sources } : {}),
               };
               setLoadedCourse(course);
+            } else {
+              // If not in Firestore, try Redis (ephemeral guest course)
+              try {
+                const res = await fetch(`/api/courses/${courseId}/redis`);
+                if (res.ok) {
+                  const redisCourse = await res.json();
+                  const course = {
+                    ...redisCourse,
+                    courseThumbnail:
+                      redisCourse.courseImage || redisCourse.courseThumbnail,
+                  };
+                  setLoadedCourse(course);
+                }
+              } catch (e) {
+                console.warn("Failed to load from Redis fallback:", e);
+              }
             }
           });
         }

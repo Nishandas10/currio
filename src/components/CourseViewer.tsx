@@ -182,6 +182,20 @@ export default function CourseViewer({
     if (courseImageUrl) return; // Already have an image URL
     if (authLoading) return; // Wait for auth to resolve
     if (user) return; // Skip for authenticated users (handled by course page)
+
+    // Only guests in an active *generation* flow should ever call ensure-thumbnail (Redis-backed).
+    // Guests viewing existing public courses should rely on Firestore `courseThumbnail`.
+    const guestInProgressKey = `guest_generation_in_progress:${courseId}`;
+    const hasGuestInProgress = (() => {
+      try {
+        return !!localStorage.getItem(guestInProgressKey);
+      } catch {
+        return false;
+      }
+    })();
+    if (!hasGuestInProgress) return;
+
+    if (isPublic) return; // Public courses should already have thumbnail in Firestore
     if (isGeneratingImage || imageError) return;
 
     setIsGeneratingImage(true);
@@ -210,7 +224,7 @@ export default function CourseViewer({
         setImageError(true);
       })
       .finally(() => setIsGeneratingImage(false));
-  }, [courseId, courseImageUrl, isGeneratingImage, imageError, user, authLoading]);
+  }, [courseId, courseImageUrl, isGeneratingImage, imageError, user, authLoading, isPublic]);
 
   useEffect(() => {
     const nav = navRef.current;

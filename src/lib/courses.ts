@@ -12,6 +12,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  onSnapshot,
 } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
 
@@ -361,4 +362,68 @@ export async function getUserRecentCourses(userId: string, limitCount = 10) {
       })
       .slice(0, limitCount);
   }
+}
+
+export async function getPublicCourses(limitCount = 20) {
+  try {
+    const q = query(
+      collection(firebaseDb, "courses"),
+      where("isPublic", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (FirestoreCourseDoc & { id: string })[];
+  } catch (e) {
+    console.warn(
+      "Index missing or query failed for public courses, falling back to client-side sort",
+      e
+    );
+    const q = query(
+      collection(firebaseDb, "courses"),
+      where("isPublic", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    const courses = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (FirestoreCourseDoc & { id: string })[];
+
+    return courses
+      .sort((a, b) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getSeconds = (t: any) => {
+          if (!t) return 0;
+          if (typeof t.seconds === "number") return t.seconds;
+          return 0;
+        };
+        const tA = getSeconds(a.createdAt);
+        const tB = getSeconds(b.createdAt);
+        return tB - tA;
+      })
+      .slice(0, limitCount);
+  }
+}
+
+export function subscribeToPublicCourses(
+  callback: (courses: (FirestoreCourseDoc & { id: string })[]) => void,
+  limitCount = 3
+) {
+  const q = query(
+    collection(firebaseDb, "courses"),
+    where("isPublic", "==", true),
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const courses = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (FirestoreCourseDoc & { id: string })[];
+    callback(courses);
+  });
 }

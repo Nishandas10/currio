@@ -71,12 +71,23 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
       window.removeEventListener("course_created", handleCourseCreated);
     };
   }, [fetchCourses]);  return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-[#ffffff] border-r border-gray-300 transition-all duration-300 flex flex-col",
-        isCollapsed ? "w-16" : "w-64"
+    <>
+      {/* Mobile backdrop */}
+      {!isCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={toggle}
+        />
       )}
-    >
+      
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 h-screen bg-[#ffffff] border-r border-gray-300 transition-all duration-300 flex flex-col",
+          // Mobile: slide from left, hidden by default
+          "md:translate-x-0",
+          isCollapsed ? "-translate-x-full md:translate-x-0 md:w-16" : "translate-x-0 w-64"
+        )}
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-2 pt-2 h-16 border-b border-gray-200">
         <div 
@@ -267,5 +278,6 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
       
       <FeedbackDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
     </aside>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import type { Course } from "@/lib/schema";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { courseSchema } from "@/lib/schema";
 import { useAuth } from "@/contexts/AuthContext";
+import ClientLayout from "@/components/ClientLayout";
 import {
   createCourseDoc,
   updateCourseThumbnail,
@@ -538,7 +539,7 @@ export default function CoursePage({ params }: PageProps) {
 
   // CourseViewer expects a Course shape; we show placeholder while generating.
   return (
-    <>
+    <ClientLayout>
       {isGuestLimitReached && (
         <>
           <div className="fixed inset-0 z-40 bg-linear-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
@@ -569,6 +570,6 @@ export default function CoursePage({ params }: PageProps) {
       <div className={isGuestLimitReached ? "pointer-events-none select-none" : ""}>
         <CourseViewer course={displayCourse} userPrompt={prompt || displayCourse.courseTitle} />
       </div>
-    </>
+    </ClientLayout>
   );
 }

@@ -18,6 +18,7 @@ import { uploadPodcastAudio } from "@/lib/storage";
 import { updateLessonAssetUrls, updateCourseVisibility } from "@/lib/courses";
 import { ShareCourseDialog } from "@/components/ShareCourseDialog";
 import { Switch } from "@/components/ui/switch";
+import { SidebarToggleButton } from "@/components/SidebarToggleButton";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -586,9 +587,10 @@ export default function CourseViewer({
       {!hideHeader && (
         <header className="flex items-center justify-between px-6 py-4 border-b bg-white sticky top-0 z-50">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-2xl font-serif font-bold tracking-tight">Currio</Link>
+            <SidebarToggleButton />
+            <Link href="/" className="hidden md:block text-2xl font-serif font-bold tracking-tight">Currio</Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ml-auto md:ml-0">
             {user ? (
               <>
                 <div className="flex items-center gap-2 rounded-full border border-black/40 bg-white px-4 py-1.5 hover:bg-black/5 transition-colors">

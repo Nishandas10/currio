@@ -1,34 +1,46 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import AppSidebar from "@/components/AppSidebar";
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  // Default sidebar to collapsed by default for a compact first view
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-
-  // Only show sidebar for authenticated users
-  const shouldShowSidebar = !!user && !loading;
-
-  if (!shouldShowSidebar) {
-    return <>{children}</>;
-  }
+function ClientLayoutInner({ children }: { children: React.ReactNode }) {
+  const { isSidebarCollapsed, toggleSidebar } = useSidebar();
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <>
       <AppSidebar 
         isCollapsed={isSidebarCollapsed} 
-        toggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+        toggle={toggleSidebar} 
       />
+      
       <main 
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? "ml-16" : "ml-64"
+        className={`flex-1 transition-all duration-300 ease-in-out h-screen overflow-hidden ${
+          isSidebarCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-64"
         }`}
       >
         {children}
       </main>
-    </div>
+    </>
+  );
+}
+
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  // Only show sidebar for authenticated users
+  const shouldShowSidebar = !!user && !loading;
+
+  return (
+    <SidebarProvider>
+      {shouldShowSidebar ? (
+        <div className="flex h-screen bg-white overflow-hidden">
+          <ClientLayoutInner>{children}</ClientLayoutInner>
+        </div>
+      ) : (
+        <>{children}</>
+      )}
+    </SidebarProvider>
   );
 }

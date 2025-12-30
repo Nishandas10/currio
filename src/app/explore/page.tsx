@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ClientLayout from "@/components/ClientLayout";
 import { getUserProfile } from "@/lib/users";
+import { SidebarToggleButton } from "@/components/SidebarToggleButton";
 
 type CourseWithUser = FirestoreCourseDoc & {
   id: string;
@@ -65,18 +66,21 @@ export default function ExplorePage() {
 
   return (
     <ClientLayout>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-          <Link
-            href="/"
-            className="text-2xl font-bold tracking-tight text-gray-900 hover:opacity-80 transition-opacity shrink-0"
-          >
-            Currio
-          </Link>
+          <div className="flex items-center gap-3">
+            <SidebarToggleButton />
+            <Link
+              href="/"
+              className="hidden md:block text-2xl font-bold tracking-tight text-gray-900 hover:opacity-80 transition-opacity shrink-0"
+            >
+              Currio
+            </Link>
+          </div>
 
-          <div className="space-y-4 flex-1 md:max-w-md md:text-right">
+          <div className="space-y-4 flex-1 md:max-w-md text-center md:text-right">
             <h1 className="text-3xl font-bold text-gray-900">Discover courses created by the community</h1>
-            <div className="relative max-w-md md:ml-auto">
+            <div className="relative max-w-md mx-auto md:ml-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search courses..."

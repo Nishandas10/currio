@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import ClientLayout from "@/components/ClientLayout";
 import {
   getUserCourses,
   updateCourseVisibility,
@@ -25,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SidebarToggleButton } from "@/components/SidebarToggleButton";
 import {
   Dialog,
   DialogContent,
@@ -162,74 +164,88 @@ export default function LibraryPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="animate-spin text-gray-400" size={32} />
-      </div>
+      <ClientLayout>
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="animate-spin text-gray-400" size={32} />
+        </div>
+      </ClientLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F6F3] p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Library</h1>
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
-            />
+    <ClientLayout>
+    <div className="h-full bg-[#F8F6F3] flex flex-col overflow-hidden">
+      {/* Fixed Header */}
+      <div className="bg-[#F8F6F3] p-3 md:p-8 shrink-0">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <SidebarToggleButton />
+              <h1 className="text-xl md:text-3xl font-bold text-gray-900">My Library</h1>
+            </div>
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search courses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
+              />
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-medium">
-                <th className="px-6 py-4 w-[40%]">Name</th>
-                <th className="px-6 py-4 w-[30%]">Description</th>
-                <th className="px-6 py-4 w-[15%]">View</th>
-                <th className="px-6 py-4 w-[10%]">Updated</th>
-                <th className="px-6 py-4 w-[5%]"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredCourses.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                        <FileText className="text-gray-400" size={24} />
-                      </div>
-                      <p>No courses found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredCourses.map((course) => (
-                  <tr key={course.id} className="group hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
+      {/* Scrollable Table Container */}
+      <div className="flex-1 px-3 md:px-8 pb-3 md:pb-8 overflow-hidden">
+        <div className="max-w-6xl mx-auto h-full">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-full overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-5">
+                  <tr className="border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-medium">
+                    <th className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">Name</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">Description</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">View</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">Updated</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 bg-white">
+                  {filteredCourses.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p>No courses found</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCourses.map((course) => (
+                      <tr key={course.id} className="group hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                       <Link
                         href={`/course/${course.slug || course.id}`}
-                        className="flex items-center gap-3 font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                        className="flex items-center gap-2 md:gap-3 font-medium text-sm md:text-base text-gray-900 hover:text-blue-600 transition-colors max-w-xs"
                       >
-                        <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center shrink-0 text-xs font-bold text-gray-500">
+                        <div className="w-7 h-7 md:w-8 md:h-8 rounded bg-gray-100 flex items-center justify-center shrink-0 text-xs font-bold text-gray-500">
                           {course.title.charAt(0).toUpperCase()}
                         </div>
-                        {course.title}
+                        <span className="truncate">{course.title}</span>
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <p className="truncate max-w-50">{course.description || "No description"}</p>
+                    <td className="px-4 md:px-6 py-3 md:py-4">
+                      <p className="text-xs md:text-sm text-gray-500 truncate max-w-xs">{course.description || "No description"}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleToggleVisibility(course)}
                         className={cn(
-                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border",
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border whitespace-nowrap",
                           course.isPublic
                             ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                             : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
@@ -246,10 +262,10 @@ export default function LibraryPage() {
                         )}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-500 whitespace-nowrap">
                       {formatDate(course.updatedAt || course.createdAt)}
                     </td>
-                    <td className="px-6 py-4 relative">
+                    <td className="px-4 md:px-6 py-3 md:py-4 relative whitespace-nowrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -289,6 +305,8 @@ export default function LibraryPage() {
               )}
             </tbody>
           </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -354,5 +372,6 @@ export default function LibraryPage() {
         />
       )}
     </div>
+    </ClientLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { google } from "@ai-sdk/google";
+import { retryOperation } from "@/lib/utils";
 
 // EDGE RUNTIME: Critical for speed
 export const runtime = "edge";
@@ -23,16 +24,18 @@ export async function POST(req: Request) {
 
     // Step 2: Generate image using Imagen 4.0
     const imageModel = google.image("imagen-4.0-fast-generate-001");
-    const { images } = await imageModel.doGenerate({
-      prompt: refinedPrompt,
-      n: 1,
-      size: "1024x1024",
-      aspectRatio: "1:1",
-      seed: undefined,
-      // Include required fields for ImageModelV3CallOptions
-      files: [],
-      mask: undefined,
-      providerOptions: {},
+    const { images } = await retryOperation(async () => {
+      return await imageModel.doGenerate({
+        prompt: refinedPrompt,
+        n: 1,
+        size: "1024x1024",
+        aspectRatio: "1:1",
+        seed: undefined,
+        // Include required fields for ImageModelV3CallOptions
+        files: [],
+        mask: undefined,
+        providerOptions: {},
+      });
     });
 
     if (!images || images.length === 0) {

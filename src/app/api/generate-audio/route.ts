@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWithRetry } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -163,7 +164,7 @@ async function ttsChunkToAudio(
     },
   };
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

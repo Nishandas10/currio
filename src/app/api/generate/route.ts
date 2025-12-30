@@ -6,6 +6,7 @@ import {
   COURSE_GENERATION_SYSTEM_PROMPT,
   buildCoursePrompt,
 } from "@/lib/geminiprompt";
+import { fetchWithRetry } from "@/lib/utils";
 
 // EDGE RUNTIME: Critical for speed and long streaming timeouts
 export const runtime = "edge";
@@ -47,7 +48,7 @@ async function googleWebSearch(
   url.searchParams.set("q", q);
   url.searchParams.set("num", String(num));
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithRetry(url.toString(), {
     method: "GET",
     headers: { accept: "application/json" },
     cache: "no-store",

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWithRetry } from "@/lib/utils";
 
 export const runtime = "edge";
 
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
       query
     )}&gsrlimit=5&prop=imageinfo&iiprop=url|mime|mediatype|extmetadata&iiurlwidth=1280&format=json&origin=*`;
 
-    const res = await fetch(searchUrl);
+    const res = await fetchWithRetry(searchUrl);
     const data = await res.json();
 
     const pages = data?.query?.pages;

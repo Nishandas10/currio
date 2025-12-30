@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { fetchWithRetry } from "@/lib/utils";
 
 export const runtime = "edge";
 
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
 
     // Call the existing generator.
     const generatorUrl = new URL("/api/generate-image", req.url);
-    const genRes = await fetch(generatorUrl.toString(), {
+    const genRes = await fetchWithRetry(generatorUrl.toString(), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ prompt: promptToUse }),

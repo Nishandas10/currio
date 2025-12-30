@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BookOpen, Headphones, Play, StickyNote, GraduationCap } from "lucide-react";
+import { BookOpen, Headphones, Play, StickyNote, GraduationCap, ChevronDown } from "lucide-react";
 import { Course } from "@/lib/schema";
 import Link from "next/link";
 import Image from "next/image";
@@ -40,6 +40,9 @@ export default function CourseViewer({
 
   // Final test “virtual section”
   const [isFinalTestActive, setIsFinalTestActive] = useState(false);
+
+  // Mobile navigation dropdown state
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // On-demand audio generation/playback state (per current section)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -630,10 +633,116 @@ export default function CourseViewer({
         </header>
       )}
 
+      {/* --- MOBILE NAVIGATION DROPDOWN (Fixed Second Navbar) --- */}
+      {isMobileNavOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/20 z-20"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+      <div className="lg:hidden sticky top-14 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <button
+          onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+          className="w-full flex items-center justify-between px-6 py-3 text-left"
+        >
+          <span className="font-serif font-bold text-lg text-[#1A1A1A] truncate">
+            {course.courseTitle || "Course Navigation"}
+          </span>
+          <ChevronDown 
+            className={`w-5 h-5 text-gray-600 transition-transform shrink-0 ${isMobileNavOpen ? "rotate-180" : ""}`} 
+          />
+        </button>
+        
+        {isMobileNavOpen && (
+          <div className="max-h-[70vh] overflow-y-auto bg-white border-t border-gray-200">
+            <div className="p-6">
+              {/* Course Thumbnail */}
+              <div className="aspect-video bg-[#F8F6F3] rounded-xl mb-4 relative overflow-hidden flex items-center justify-center">
+                {isGeneratingImage ? (
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                    <span className="text-sm text-gray-500">Generating image...</span>
+                  </div>
+                ) : courseImageUrl && !imageError ? (
+                  <Image 
+                    src={courseImageUrl}
+                    alt={course.courseTitle || "Course thumbnail"}
+                    className="w-full h-full object-cover"
+                    width={1024}
+                    height={576}
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-4xl">🎓</span>
+                )}
+              </div>
+              
+              {/* Navigation */}
+              <nav className="space-y-6">
+                {(Array.isArray(course.modules) ? course.modules : []).map((module, mIdx) => (
+                  <div key={mIdx}>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
+                      {module.moduleTitle}
+                    </h3>
+                    <div className="space-y-1">
+                      {(Array.isArray(module.sections) ? module.sections : []).map((section, sIdx) => {
+                        const isActive =
+                          !isFinalTestActive && mIdx === activeModuleIdx && sIdx === activeSectionIdx;
+                        return (
+                          <button
+                            key={sIdx}
+                            onClick={() => {
+                              setIsFinalTestActive(false);
+                              setActiveModuleIdx(mIdx);
+                              setActiveSectionIdx(sIdx);
+                              setIsMobileNavOpen(false); // Close dropdown after selection
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                              isActive
+                                ? "bg-[#F8F6F3] text-black font-medium"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {section.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Final course-wide test */}
+                <div>
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
+                    Final
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFinalTestActive(true);
+                      setIsMobileNavOpen(false); // Close dropdown after selection
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                      isFinalTestActive
+                        ? "bg-[#F8F6F3] text-black font-medium"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <GraduationCap size={16} /> Take test
+                    </span>
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* --- LEFT SIDEBAR (Navigation Card) --- */}
-          <aside className="w-full lg:w-80 shrink-0">
+          {/* --- LEFT SIDEBAR (Navigation Card) - Hidden on Mobile --- */}
+          <aside className="hidden lg:block lg:w-80 shrink-0">
             <div ref={navRef} className="bg-white border border-gray-300 rounded-2xl p-6 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar shadow-sm">
               {/* Course Info */}
               <div className="pb-6 mb-6 border-b border-gray-300">

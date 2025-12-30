@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { 
   Plus, 
   Search, 
-  Globe,
+  Compass,
   ChevronLeft,
   ChevronUp,
   ChevronDown,
@@ -130,7 +130,7 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
             )}
             title="Explore"
           >
-            <Globe size={20} className="text-gray-500 group-hover:text-black" />
+            <Compass size={20} className="text-gray-500 group-hover:text-black" />
             {!isCollapsed && <span className="font-medium">Explore</span>}
           </Link>
 

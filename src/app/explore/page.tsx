@@ -75,10 +75,7 @@ export default function ExplorePage() {
           </Link>
 
           <div className="space-y-4 flex-1 md:max-w-md md:text-right">
-            <h1 className="text-3xl font-bold text-gray-900">Explore Courses</h1>
-            <p className="text-gray-500">
-              Discover courses created by the community.
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Discover courses created by the community</h1>
             <div className="relative max-w-md md:ml-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input

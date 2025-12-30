@@ -560,13 +560,13 @@ export default function CourseViewer({
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <div className="flex items-center space-x-2 mr-2">
+                <div className="flex items-center gap-2 rounded-full border border-black/40 bg-white px-4 py-1.5 hover:bg-black/5 transition-colors">
                   <Switch
                     id="public-mode"
                     checked={isPublic}
                     onCheckedChange={handlePublicToggle}
                   />
-                  <Label htmlFor="public-mode" className="text-sm font-medium cursor-pointer">
+                  <Label htmlFor="public-mode" className="text-sm font-medium cursor-pointer text-[#1A1A1A]">
                     Make Public
                   </Label>
                 </div>

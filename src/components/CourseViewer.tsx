@@ -128,6 +128,7 @@ export default function CourseViewer({
   // refs for the navigation card and main content so we can scroll selected item into view
   const navRef = useRef<HTMLDivElement | null>(null);
   const mainContentRef = useRef<HTMLDivElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   // Keep local state in sync when navigating between courses.
   // IMPORTANT: while streaming, `course` object changes frequently. We only want to
@@ -273,14 +274,9 @@ export default function CourseViewer({
       el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
     }
 
-    // also scroll the main content area to its top so the selected section starts from the top
-    if (mainContentRef.current) {
-      // compute element top relative to document and subtract sticky header height so content appears just below header
-      const rect = mainContentRef.current.getBoundingClientRect();
-      const headerEl = document.querySelector("header");
-      const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 0;
-      const top = Math.max(0, window.scrollY + rect.top - headerHeight - 12);
-      window.scrollTo({ top, behavior: "smooth" });
+    // Scroll to top of course viewer when changing sections
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [activeModuleIdx, activeSectionIdx]);
 
@@ -587,7 +583,7 @@ export default function CourseViewer({
     );
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#1A1A1A] pb-28">
+    <div ref={topRef} className="min-h-screen bg-white font-sans text-[#1A1A1A] pb-28">
       {/* --- TOP NAVIGATION --- */}
       {!hideHeader && (
         <header className="flex items-center justify-between px-6 py-4 border-b bg-white sticky top-0 z-50">

@@ -181,7 +181,7 @@ export default function LibraryPage() {
           <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2 md:gap-3">
               <SidebarToggleButton />
-              <h1 className="text-xl md:text-3xl font-bold text-gray-900">My Library</h1>
+              <h1 className="text-xl md:text-3xl font-bold text-gray-900">My Courses</h1>
             </div>
             <div className="relative w-full md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />

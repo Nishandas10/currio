@@ -146,15 +146,15 @@ export default function AppSidebar({ isCollapsed, toggle }: AppSidebarProps) {
           </Link>
 
           <Link
-            href="/library"
+            href="/my-courses"
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-black/5 transition-all group",
               isCollapsed ? "justify-center" : ""
             )}
-            title="Library"
+            title="My Courses"
           >
             <Search size={20} className="text-gray-500 group-hover:text-black" />
-            {!isCollapsed && <span className="font-medium">Library</span>}
+            {!isCollapsed && <span className="font-medium">My Courses</span>}
           </Link>
         </div>
 

@@ -1,286 +1,304 @@
-// Plain, static Terms & Conditions page rendered from TERMS.md content
+// Terms & Conditions page for Currio
 // Route: /terms-conditions
 import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-	title: "Terms & Conditions | BlumeNote",
-	description: "BlumeNote Terms & Conditions",
+	title: "Terms & Conditions | Currio",
+	description: "Currio Terms & Conditions - Rules and guidelines for using our AI-powered course generation platform.",
 };
 
 export default function TermsConditionsPage() {
 	return (
-		<main className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
-			<nav className="mb-6 border-b border-gray-200 dark:border-gray-700" aria-label="Site">
+		<main className="mx-auto max-w-3xl px-4 py-8 sm:py-12 bg-white min-h-screen">
+			<nav className="mb-6 border-b border-gray-200" aria-label="Site">
 				<div className="py-3 flex items-center justify-between">
-					<Link href="/" className="font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-						BlumeNote AI
+					<Link href="/" className="font-serif font-bold text-xl tracking-tight text-gray-900">
+						Currio
 					</Link>
 					<Link href="/" className="text-sm text-blue-600 hover:underline">
-						Home
+						Return Home
 					</Link>
 				</div>
 			</nav>
-			<article className="text-gray-800 dark:text-gray-200">
-				<h1 className="text-3xl font-bold tracking-tight mb-3">
-					BlumeNote – Terms &amp; Conditions
-				</h1>
-				<p className="mt-1">
-					<strong>Contact:</strong>{" "}
-					<a className="text-blue-600 hover:underline" href="mailto:dasbudhe@gmail.com">dasbudhe@gmail.com</a>
-				</p>
-				<p className="mt-1 text-gray-600 dark:text-gray-400">
-					<strong>Last Updated:</strong> <em>November 16, 2025</em>
-				</p>
+			<article className="text-gray-800 leading-relaxed">
+				<header className="mb-8">
+					<h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight mb-4 text-[#1A1A1A]">
+						Terms &amp; Conditions
+					</h1>
+					<p className="text-gray-500 text-sm">
+						<strong>Last Updated:</strong> <em>December 31, 2025</em>
+					</p>
+					<p className="mt-6 text-lg text-gray-600">
+						Welcome to <strong>Currio</strong> (&quot;we,&quot; &quot;us,&quot; &quot;our,&quot; &quot;the Service&quot;). By accessing or using our AI-powered course generation platform, you (&quot;you,&quot; &quot;user&quot;) agree to these Terms &amp; Conditions (&quot;Terms&quot;). Please read them carefully. If you do not agree, do not use Currio.
+					</p>
+				</header>
 
-				<p className="mt-6">
-					Welcome to <strong>BlumeNote</strong> (“we,” “our,” “the Service”). By accessing or
-					using our platform, you (“you,” “user”) agree to these Terms &amp; Conditions
-					(“Terms”). Please read them carefully. If you do not agree, do not use
-					BlumeNote.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">1. Acceptance of Terms</h2>
+					<p className="text-gray-700 mb-4">
+						By creating an account or using Currio, you acknowledge that you have read, understood, and agree to be bound by these Terms, as well as our <Link href="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</Link>. If you do not agree to these Terms, you must discontinue use of the Service immediately.
+					</p>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">1. Recording &amp; Content Upload Policy</h2>
-				<p>
-					BlumeNote is committed to respecting institutional rules, copyright law, and
-					privacy regulations. By using the Service, you agree to the following:
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">1.1 Compliance with Institutional Rules</h3>
-				<p>
-					You must not record, upload, or share any content that violates policies set by
-					your school, college, university, workplace, or instructor. It is your
-					responsibility to understand and comply with your institution’s rules regarding:
-				</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Recording of lectures or meetings</li>
-					<li>Sharing educational materials</li>
-					<li>Uploading class content</li>
-				</ul>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">2. Service Description</h2>
+					<p className="text-gray-700 mb-4">
+						Currio is an AI-powered educational platform that generates personalized courses, quizzes, flashcards, and audio podcasts based on user prompts. The Service utilizes third-party AI models (Google Gemini, OpenAI) and public domain resources (Wikimedia Commons) to create educational content.
+					</p>
+					<div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
+						<p className="text-sm text-blue-800">
+							<strong>Note:</strong> All content generated by Currio is AI-generated and may contain inaccuracies. Currio is a study aid and not a substitute for formal education, professional advice, or primary source materials.
+						</p>
+					</div>
+				</section>
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">1.2 Adherence to Copyright Law</h3>
-				<p>You may not upload copyrighted materials without explicit permission from the copyright holder. This includes:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Lecture slides</li>
-					<li>Instructor-generated notes</li>
-					<li>Textbooks, PDFs, or excerpts</li>
-					<li>Multimedia content</li>
-					<li>Any other copyright-protected resources</li>
-				</ul>
+				<hr className="my-8 border-gray-200" />
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">1.3 Privacy &amp; Sensitive Information</h3>
-				<p>You may not record, upload, or share:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Private conversations</li>
-					<li>Confidential academic or workplace discussions</li>
-					<li>Legally protected or sensitive information</li>
-				</ul>
-				<p>
-					The user is solely responsible for ensuring that any recording or content shared
-					through BlumeNote complies with privacy laws and institutional rules.
-				</p>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">3. User Accounts &amp; Eligibility</h2>
+					
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">3.1 Account Creation</h3>
+					<p className="text-gray-700 mb-4">
+						To access certain features, you must create an account using Google Firebase Authentication. You agree to:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Provide accurate and complete information</li>
+						<li>Maintain the security of your account credentials</li>
+						<li>Notify us immediately of any unauthorized access</li>
+						<li>Accept responsibility for all activities under your account</li>
+					</ul>
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">1.4 User Responsibility</h3>
-				<p>
-					BlumeNote disclaims all liability for content users upload. By using the
-					platform, you agree to <strong>indemnify and hold harmless</strong> BlumeNote and its
-					owner from any claims arising from unauthorized or illegal content uploads.
-				</p>
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">3.2 Eligibility</h3>
+					<p className="text-gray-700 mb-4">
+						You must be at least 13 years old to use Currio. If you are under 18, you must have parental or guardian consent. By using Currio, you represent that you meet these age requirements.
+					</p>
+				</section>
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<hr className="my-8 border-gray-200" />
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">2. License to Use BlumeNote Content</h2>
-				<p>
-					Subject to these Terms, BlumeNote grants you a <strong>limited, non-exclusive,
-					non-commercial, revocable, non-transferable</strong> license to access
-					BlumeNote-generated content (“Blume Content”) solely for personal educational use.
-				</p>
-				<p>You agree <strong>not to</strong>:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Copy, download, or extract content using bots, scrapers, crawlers, scripts, or automated tools</li>
-					<li>Frame, mask, mine, or harvest Blume Content</li>
-					<li>Share subscription access with others</li>
-				</ul>
-				<p>
-					Any expanded access or automated use requires <strong>written permission</strong> from
-					BlumeNote.
-				</p>
-				<p>BlumeNote may impose reasonable limits on:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Number of devices</li>
-					<li>Frequency of access</li>
-					<li>Amount of material generated</li>
-					<li>Subscription usage</li>
-				</ul>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">4. Course Content &amp; Sharing</h2>
+					
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">4.1 Private by Default</h3>
+					<p className="text-gray-700 mb-4">
+						All courses you generate are <strong>private by default</strong>. Only you can view and access your private courses.
+					</p>
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">4.2 Public Sharing</h3>
+					<p className="text-gray-700 mb-4">
+						You may choose to make your courses public using the &quot;Make Public&quot; toggle. By making a course public, you grant Currio and other users a non-exclusive, worldwide, royalty-free license to:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Display your course in the public &quot;Explore&quot; feed</li>
+						<li>Allow other users to view and learn from your course</li>
+						<li>Index your course for search engines</li>
+						<li>Associate your display name with the course as its creator</li>
+					</ul>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">3. Fulfillment &amp; Subscription Policy</h2>
-				<h3 className="text-xl font-semibold mt-6 mb-2">3.1 Refund Policy</h3>
-				<p>Refunds are issued <strong>only</strong> when:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>A technical issue prevents proper use</li>
-					<li>Our support team cannot resolve the issue</li>
-				</ul>
-				<p>
-					Refund requests must be submitted within <strong>30 days</strong> of purchase, along with
-					detailed error information.
-				</p>
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">4.3 Content Guidelines</h3>
+					<p className="text-gray-700 mb-4">
+						You agree not to generate or share courses that:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Contain illegal, harmful, or offensive content</li>
+						<li>Violate intellectual property rights</li>
+						<li>Include private, sensitive, or confidential information</li>
+						<li>Promote violence, discrimination, or harassment</li>
+						<li>Contain spam, malware, or malicious links</li>
+						<li>Violate academic integrity policies</li>
+					</ul>
+				</section>
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">3.2 Delivery Policy</h3>
-				<p>
-					All services are delivered <strong>digitally</strong>. Access to paid features is granted
-					immediately after purchase, and confirmation details are emailed to the user.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">3.3 Return Policy</h3>
-				<p>Because BlumeNote provides digital services, <strong>returns are not applicable</strong>.</p>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">5. Academic Integrity &amp; Proper Use</h2>
+					<p className="text-gray-700 mb-4">
+						Currio is designed to support learning—not replace it. You agree to use Currio ethically and responsibly:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li><strong>Prohibited Uses:</strong> You may not use Currio for cheating, academic misconduct, plagiarism, or circumventing institutional policies</li>
+						<li><strong>Study Aid Only:</strong> Currio is a supplementary learning tool, not a replacement for coursework, textbooks, or lectures</li>
+						<li><strong>Verification Required:</strong> Always verify AI-generated content with authoritative sources before relying on it for important decisions</li>
+					</ul>
+					<p className="text-gray-700 mb-4">
+						We reserve the right to suspend or terminate accounts that misuse the platform for academic dishonesty.
+					</p>
+				</section>
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">3.4 Cancellation Policy</h3>
-				<p>Users may cancel subscriptions anytime through the account billing portal. After cancellation:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Access continues until the end of the billing cycle</li>
-					<li>No additional charges will be applied</li>
-					<li>Premium access ends when the cycle ends</li>
-				</ul>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">6. AI-Generated Content Disclaimer</h2>
+					<div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+						<p className="text-gray-700 mb-4">
+							<strong>Important:</strong> Currio uses Large Language Models (LLMs) and automated systems to generate content. You acknowledge and accept that:
+						</p>
+						<ul className="list-disc pl-6 space-y-2 text-gray-700 text-sm">
+							<li><strong>Accuracy:</strong> AI may produce factually incorrect, outdated, or misleading information (&quot;hallucinations&quot;). Always verify critical information.</li>
+							<li><strong>Bias:</strong> AI models may reflect biases from their training data.</li>
+							<li><strong>Images:</strong> Automated image selection from Wikimedia Commons may occasionally display irrelevant or inappropriate images. We do not manually review every image.</li>
+							<li><strong>No Warranties:</strong> Content is provided &quot;as is&quot; without warranties of any kind.</li>
+						</ul>
+					</div>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">4. Copyright &amp; Intellectual Property Policy</h2>
-				<p>BlumeNote respects the rights of educators and content creators.</p>
-				<h3 className="text-xl font-semibold mt-6 mb-2">4.1 Prohibited Actions</h3>
-				<p>The following actions are strictly forbidden:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Uploading copyrighted material without permission</li>
-					<li>Uploading instructor/faculty-created resources without consent</li>
-					<li>Sharing lecture recordings or verbatim transcripts</li>
-					<li>Storing or sharing tests, quizzes, exam material</li>
-					<li>Uploading content that violates university or school rules</li>
-				</ul>
-				<p>
-					BlumeNote only provides <strong>AI-generated summaries</strong>, not stored transcripts or
-					direct lecture reproductions.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">4.2 DMCA Compliance</h3>
-				<p>
-					BlumeNote complies with the <strong>Digital Millennium Copyright Act (DMCA)</strong>.
-				</p>
-				<p>To file a DMCA notice, email: <a className="text-blue-600 hover:underline" href="mailto:dasbudhe@gmail.com">dasbudhe@gmail.com</a> with:</p>
-				<ol className="list-decimal pl-6 mt-2 space-y-1">
-					<li>Your contact information</li>
-					<li>Identification of the copyrighted work</li>
-					<li>URL/location of the infringing content</li>
-					<li>A good-faith statement of unauthorized use</li>
-					<li>Your physical or electronic signature</li>
-				</ol>
-				<p>Upon valid notice, BlumeNote will promptly remove the infringing content.</p>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">7. Intellectual Property</h2>
+					
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">7.1 Ownership</h3>
+					<p className="text-gray-700 mb-4">
+						Currio and its original content, features, and functionality are owned by Nishant Das and are protected by international copyright, trademark, and other intellectual property laws.
+					</p>
 
-				<h3 className="text-xl font-semibold mt-6 mb-2">4.3 Consequences of Violation</h3>
-				<p>Violations may lead to:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Removal of content</li>
-					<li>Account suspension</li>
-					<li>Account termination</li>
-					<li>Possible legal action</li>
-				</ul>
-				<p>We may cooperate with educational institutions where required.</p>
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">7.2 User-Generated Content</h3>
+					<p className="text-gray-700 mb-4">
+						You retain ownership of your prompts and private courses. However, for public courses, you grant Currio a perpetual, irrevocable, worldwide license to display and distribute the content.
+					</p>
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+					<h3 className="text-xl font-bold mt-6 mb-3 text-[#1A1A1A]">7.3 Copyright Infringement</h3>
+					<p className="text-gray-700 mb-4">
+						If you believe content on Currio infringes your copyright, please contact us at <a href="mailto:dasbudhe@gmail.com" className="text-blue-600 hover:underline">dasbudhe@gmail.com</a> with:
+					</p>
+					<ol className="list-decimal pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Identification of the copyrighted work</li>
+						<li>Location of the infringing content (URL)</li>
+						<li>Your contact information</li>
+						<li>A statement of good faith belief that use is unauthorized</li>
+						<li>Your physical or electronic signature</li>
+					</ol>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">5. Honor Code &amp; Academic Integrity</h2>
-				<p>
-					BlumeNote is designed to support learning—not replace it. Users must <strong>not</strong>
-					use BlumeNote for:
-				</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Cheating</li>
-					<li>Academic misconduct</li>
-					<li>Sharing or requesting exam/test answers</li>
-					<li>Plagiarism</li>
-					<li>Circumventing academic integrity policies</li>
-				</ul>
-				<p>
-					If we detect misuse, we may: remove content, disable accounts, report publicly
-					posted content to academic institutions, and share relevant account information
-					with universities if misconduct occurs.
-				</p>
-				<p>We believe learning requires genuine effort, not shortcuts.</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">8. Third-Party Services &amp; Links</h2>
+					<p className="text-gray-700 mb-4">
+						Currio integrates with third-party services including Google Gemini, OpenAI, Firebase, Upstash Redis, and Wikimedia Commons. We are not responsible for:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Service availability, downtime, or errors from third-party providers</li>
+						<li>Data handling practices of external services (see our Privacy Policy)</li>
+						<li>Content or accuracy of external links</li>
+					</ul>
+				</section>
 
-				{/* Newly added concise legal sections (original sections 6-9 preserved and renumbered below) */}
-				<h2 className="text-2xl font-semibold mt-8 mb-2">6. Data Loss Disclaimer</h2>
-				<p>
-					BlumeNote is not responsible for any loss of data, including but not limited to deleted notes, corrupted files, failed uploads, service outages, or other technical issues. Users are encouraged to keep their own backups of important materials.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">9. Limitation of Liability</h2>
+					<p className="text-gray-700 mb-4">
+						<strong>To the maximum extent permitted by law:</strong>
+					</p>
+					<ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+						<li>Currio is provided &quot;as is&quot; without warranties of any kind</li>
+						<li>We are not liable for any indirect, incidental, special, consequential, or punitive damages</li>
+						<li>We are not responsible for data loss, academic consequences, or reliance on AI-generated content</li>
+						<li>Our total liability shall not exceed the amount you paid us in the past 12 months</li>
+						<li>We are not liable for offense, emotional distress, or harm caused by automated image selection or AI-generated content</li>
+					</ul>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">7. Governing Law &amp; Jurisdiction</h2>
-				<p>
-					These Terms are governed by the laws of India. Any disputes arising from or related to the use of BlumeNote shall be resolved exclusively in the courts of <strong>Guwahati, India</strong>.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">10. Indemnification</h2>
+					<p className="text-gray-700 mb-4">
+						You agree to indemnify, defend, and hold harmless Currio and Nishant Das from any claims, damages, liabilities, losses, or expenses arising from:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Your use or misuse of the Service</li>
+						<li>Violation of these Terms or applicable laws</li>
+						<li>Infringement of third-party rights</li>
+						<li>Your prompts, courses, or content you share</li>
+						<li>Academic integrity violations</li>
+					</ul>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">8. Indemnification</h2>
-				<p>Users agree to indemnify, defend, and hold harmless BlumeNote and its owner (Nishant Das) from any claims, damages, liabilities, losses, or expenses arising from:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>Misuse of the Services</li>
-					<li>Uploading or sharing content that violates copyright or other legal rights</li>
-					<li>Violations of academic integrity policies or institutional rules</li>
-					<li>Any action taken on the platform that causes legal or financial consequences</li>
-				</ul>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">11. Data Security &amp; Loss</h2>
+					<p className="text-gray-700 mb-4">
+						While we implement reasonable security measures, we cannot guarantee absolute security. You acknowledge that:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Data loss, corruption, or unauthorized access may occur</li>
+						<li>You should maintain backups of important information</li>
+						<li>Service interruptions may happen without notice</li>
+						<li>We are not responsible for data loss or service outages</li>
+					</ul>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">9. Third-Party Services</h2>
-				<p>
-					BlumeNote may use third-party services such as cloud hosting providers, AI models, analytics tools, and payment processors. BlumeNote is not responsible for any downtime, errors, failures, or data issues caused by these external services. Users understand that service availability may depend on these third-party systems.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">12. Account Termination</h2>
+					<p className="text-gray-700 mb-4">
+						We reserve the right to suspend or terminate your account at any time if you:
+					</p>
+					<ul className="list-disc pl-6 space-y-1 text-gray-700 mb-4">
+						<li>Violate these Terms</li>
+						<li>Engage in fraudulent or abusive behavior</li>
+						<li>Misuse the platform for academic dishonesty</li>
+						<li>Create harmful or illegal content</li>
+					</ul>
+					<p className="text-gray-700 mb-4">
+						You may delete your account at any time. Upon account deletion, your private courses may be deleted, but public courses may be anonymized and retained for the community.
+					</p>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">10. User Responsibilities</h2>
-				<p>By using BlumeNote, you agree:</p>
-				<ul className="list-disc pl-6 mt-2 space-y-1">
-					<li>You are solely responsible for your uploads</li>
-					<li>You will comply with all laws and institutional rules</li>
-					<li>You will not misuse the platform</li>
-					<li>You will not attempt to reverse engineer, copy, or replicate the Service</li>
-				</ul>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">13. Governing Law &amp; Dispute Resolution</h2>
+					<p className="text-gray-700 mb-4">
+						These Terms are governed by the laws of <strong>India</strong>. Any disputes arising from or related to the use of Currio shall be resolved exclusively in the courts of <strong>Guwahati, India</strong>.
+					</p>
+					<p className="text-gray-700 mb-4">
+						You agree to first attempt to resolve disputes informally by contacting us before initiating any legal proceedings.
+					</p>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">11. Limitation of Liability</h2>
-				<p>
-					BlumeNote and its owner are <strong>not liable</strong> for: user-uploaded content, misuse
-					of recordings, violations of institutional or copyright policies, or any damages
-					arising from unauthorized use. Your use of BlumeNote is at your own risk.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">14. Changes to Terms</h2>
+					<p className="text-gray-700 mb-4">
+						We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting. Your continued use of Currio after changes constitutes acceptance of the updated Terms.
+					</p>
+					<p className="text-gray-700 mb-4">
+						We encourage you to review these Terms periodically. Material changes will be communicated via email or platform notification.
+					</p>
+				</section>
 
-				<h2 className="text-2xl font-semibold mt-8 mb-2">12. Modifications to the Terms</h2>
-				<p>
-					BlumeNote retains the right to modify these Terms at any time. Continued use after
-					updates constitutes acceptance of the new Terms.
-				</p>
+				<hr className="my-8 border-gray-200" />
 
-				<hr className="my-8 border-gray-200 dark:border-gray-700" />
-
-				<h2 className="text-2xl font-semibold mt-8 mb-2">13. Contact</h2>
-				<p>
-					For support, DMCA issues, or policy questions: {" "}
-					<strong>
-						<a className="text-blue-600 hover:underline" href="mailto:dasbudhe@gmail.com">dasbudhe@gmail.com</a>
-					</strong>
-				</p>
+				<section>
+					<h2 className="text-2xl font-serif font-semibold mt-8 mb-4 text-[#1A1A1A]">15. Contact Information</h2>
+					<p className="text-gray-700 mb-4">
+						For questions, concerns, or support regarding these Terms, please contact:
+					</p>
+					<div className="mt-4 mb-8">
+						<p className="font-semibold text-gray-900">Nishant Das</p>
+						<p className="text-gray-700">Developer, Currio</p>
+						<a href="mailto:dasbudhe@gmail.com" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+							dasbudhe@gmail.com
+						</a>
+					</div>
+				</section>
+				
+				<div className="mt-12 pt-8 border-t border-gray-100 text-center text-gray-400 text-sm">
+					&copy; {new Date().getFullYear()} Currio. All rights reserved.
+				</div>
 			</article>
 		</main>
 	);
 }
-

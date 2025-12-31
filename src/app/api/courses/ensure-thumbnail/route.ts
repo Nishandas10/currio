@@ -19,27 +19,15 @@ type EnsureThumbnailBody = {
  */
 export async function POST(req: Request) {
   try {
-    const requestId = crypto.randomUUID();
     const body = (await req.json()) as Partial<EnsureThumbnailBody>;
     const courseId = (body.courseId ?? "").trim();
-
-    // Minimal, privacy-safe tracing. Useful when prod clients claim the route isn't hit.
-    console.log("[ensure-thumbnail] start", {
-      requestId,
-      courseId,
-      url: req.url,
-    });
 
     if (!courseId) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing courseId" }),
         {
           status: 400,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
+          headers: { "content-type": "application/json" },
         }
       );
     }
@@ -62,11 +50,7 @@ export async function POST(req: Request) {
         JSON.stringify({ success: true, courseImage: existing, cached: true }),
         {
           status: 200,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
+          headers: { "content-type": "application/json" },
         }
       );
     }
@@ -86,14 +70,7 @@ export async function POST(req: Request) {
         if (img) {
           return new Response(
             JSON.stringify({ success: true, courseImage: img, cached: true }),
-            {
-              status: 200,
-              headers: {
-                "content-type": "application/json",
-                "cache-control": "no-store",
-                "x-request-id": requestId,
-              },
-            }
+            { status: 200, headers: { "content-type": "application/json" } }
           );
         }
       }
@@ -129,14 +106,7 @@ export async function POST(req: Request) {
           success: false,
           error: "Thumbnail generation timed out",
         }),
-        {
-          status: 408,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
-        }
+        { status: 408, headers: { "content-type": "application/json" } }
       );
     }
 
@@ -157,14 +127,7 @@ export async function POST(req: Request) {
           success: false,
           error: "Missing prompt to generate thumbnail",
         }),
-        {
-          status: 400,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
-        }
+        { status: 400, headers: { "content-type": "application/json" } }
       );
     }
 
@@ -186,11 +149,7 @@ export async function POST(req: Request) {
         }),
         {
           status: 502,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
+          headers: { "content-type": "application/json" },
         }
       );
     }
@@ -206,11 +165,7 @@ export async function POST(req: Request) {
         JSON.stringify({ success: false, error: "No image returned" }),
         {
           status: 500,
-          headers: {
-            "content-type": "application/json",
-            "cache-control": "no-store",
-            "x-request-id": requestId,
-          },
+          headers: { "content-type": "application/json" },
         }
       );
     }
@@ -243,11 +198,7 @@ export async function POST(req: Request) {
       JSON.stringify({ success: true, courseImage, cached: false }),
       {
         status: 200,
-        headers: {
-          "content-type": "application/json",
-          "cache-control": "no-store",
-          "x-request-id": requestId,
-        },
+        headers: { "content-type": "application/json" },
       }
     );
   } catch (error) {

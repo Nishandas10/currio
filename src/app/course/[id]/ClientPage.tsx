@@ -201,7 +201,7 @@ export default function ClientPage({ params }: PageProps) {
 
   // Kick off thumbnail generation ASAP (in parallel with streaming), once we have a title and description.
   useEffect(() => {
-    if (!user) return;
+    // if (!user) return; // Allow guests!
     if (uploadedCourseThumbnail) return;
     if (imageStartedRef.current) return;
     
@@ -229,19 +229,39 @@ export default function ClientPage({ params }: PageProps) {
         };
         if (!imageData?.success || !imageData.image) return;
 
-        const { url } = await uploadCourseImage({
-          userId: user.uid,
-          courseId,
-          base64Png: imageData.image,
-        });
+        let finalUrl = "";
 
-        // Update Firestore best-effort; the UI can still show the URL immediately.
-        try {
-          await updateCourseThumbnail({ courseId, courseThumbnail: url });
-        } catch (e) {
-          console.warn("Failed to persist courseThumbnail to Firestore:", e);
+        if (user) {
+          const { url } = await uploadCourseImage({
+            userId: user.uid,
+            courseId,
+            base64Png: imageData.image,
+          });
+          finalUrl = url;
+
+          // Update Firestore best-effort; the UI can still show the URL immediately.
+          try {
+            await updateCourseThumbnail({ courseId, courseThumbnail: url });
+          } catch (e) {
+            console.warn("Failed to persist courseThumbnail to Firestore:", e);
+          }
+        } else {
+          // Guest: Use base64 data URL directly
+          finalUrl = `data:image/png;base64,${imageData.image}`;
+
+          // Persist to Redis so it survives transfer
+          try {
+            await fetch(`/api/courses/${courseId}/redis`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ courseThumbnail: finalUrl }),
+            });
+          } catch (e) {
+            console.warn("Failed to persist guest thumbnail to Redis:", e);
+          }
         }
-        setUploadedCourseThumbnail(url);
+
+        setUploadedCourseThumbnail(finalUrl);
       } catch (e) {
         console.warn("Failed to generate/upload course thumbnail:", e);
       }
@@ -255,12 +275,8 @@ export default function ClientPage({ params }: PageProps) {
 
       // Persist the prompt so we can resume if the page is reloaded (for both guests and auth users)
       try {
-        // IMPORTANT: other components (e.g. CourseViewer) treat the presence of this key as a boolean flag via
-        //   !!localStorage.getItem(key)
-        // If this write fails (e.g. storage blocked), guest thumbnail generation will never kick off.
-        localStorage.setItem(guestInProgressKey, "1");
         localStorage.setItem(
-          `${guestInProgressKey}:meta`,
+          guestInProgressKey,
           JSON.stringify({ prompt, startedAt: Date.now() })
         );
       } catch {
@@ -301,18 +317,11 @@ export default function ClientPage({ params }: PageProps) {
         let promptToUse: string | undefined;
 
         // 1. Try localStorage first
-        // Prefer the structured meta key; fall back to legacy JSON stored at the base key.
-        const storedMeta = localStorage.getItem(`${guestInProgressKey}:meta`);
-        const storedLegacy = localStorage.getItem(guestInProgressKey);
-        const stored = storedMeta ?? storedLegacy;
+        const stored = localStorage.getItem(guestInProgressKey);
         if (stored) {
-          try {
-            const parsed = JSON.parse(stored) as { prompt?: string };
-            if (parsed?.prompt) {
-              promptToUse = parsed.prompt;
-            }
-          } catch {
-            // If stored is the simple flag ("1"), ignore.
+          const parsed = JSON.parse(stored) as { prompt?: string };
+          if (parsed?.prompt) {
+            promptToUse = parsed.prompt;
           }
         }
 

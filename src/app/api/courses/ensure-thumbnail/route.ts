@@ -131,11 +131,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Call the existing generator.
-    const generatorUrl = new URL("/api/generate-image", req.url);
-    const genRes = await fetchWithRetry(generatorUrl.toString(), {
+    // Call the image generator.
+    // In production, edge runtimes can behave differently around URL parsing/host headers.
+    // Use the request origin explicitly and disable caching to avoid odd cross-request reuse.
+    const origin = new URL(req.url).origin;
+    const generatorUrl = `${origin}/api/generate-image`;
+
+    const genRes = await fetchWithRetry(generatorUrl, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+      },
+      cache: "no-store",
       body: JSON.stringify({ prompt: promptToUse }),
     });
 

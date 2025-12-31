@@ -50,12 +50,15 @@ function SignupForm() {
             if (slug) {
               router.push(`/course/${slug}`);
             } else {
-              console.warn("Transfer failed, redirecting to home");
-              router.push('/');
+              console.warn("Transfer failed, redirecting to course page to retry");
+              // Redirect to the course page using the ID. ClientPage will attempt to load from Redis
+              // and retry the transfer if found.
+              router.push(`/course/${courseId}`);
             }
           } catch (err) {
             console.error("Error checking course:", err);
-            router.push('/');
+            // Even on error, try to go back to the course
+            router.push(`/course/${courseId}`);
           }
         };
         

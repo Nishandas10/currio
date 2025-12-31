@@ -16,15 +16,35 @@ export async function transferGuestCourseToUser(
   );
   try {
     // 1. Fetch from Redis via our API
-    const res = await fetch(`/api/courses/${courseId}/redis`);
-    console.log(`[Transfer] Redis fetch status: ${res.status}`);
+    // Retry logic: The course might still be generating or saving to Redis if the user
+    // navigated to login/signup immediately. Poll for a few seconds.
+    let res: Response | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let redisData: any = null;
 
-    if (!res.ok) {
-      console.warn("Guest course not found in Redis or expired");
+    for (let i = 0; i < 10; i++) {
+      res = await fetch(`/api/courses/${courseId}/redis`);
+      console.log(
+        `[Transfer] Redis fetch attempt ${i + 1} status: ${res.status}`
+      );
+
+      if (res.ok) {
+        redisData = await res.json();
+        // Check if data is actually valid (not empty)
+        if (redisData && redisData.courseTitle) {
+          break;
+        }
+      }
+
+      // Wait 1s before retry
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    if (!res || !res.ok || !redisData) {
+      console.warn("Guest course not found in Redis or expired after retries");
       return null;
     }
 
-    const redisData = await res.json();
     console.log(
       `[Transfer] Redis data retrieved, title: ${redisData.courseTitle}`
     );
@@ -32,7 +52,6 @@ export async function transferGuestCourseToUser(
     // 2. Extract data
     // We need to separate the Course data from the metadata (id, courseImage, etc.)
     // to ensure we store a clean Course object in Firestore.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {
       id,
       courseImage,
@@ -40,6 +59,12 @@ export async function transferGuestCourseToUser(
       sources,
       ...cleanCourseData
     } = redisData;
+
+    // Silence unused variable warnings
+    void id;
+    void courseImage;
+    void cThumb;
+    void sources;
 
     const course = cleanCourseData as Course;
     const rawCourse = redisData as Course & {

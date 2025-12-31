@@ -16,12 +16,14 @@ import { buildFinalTestFromCourse } from "@/lib/finalTest";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadPodcastAudio } from "@/lib/storage";
 import { updateLessonAssetUrls, updateCourseVisibility } from "@/lib/courses";
+import { slugify } from "@/lib/utils";
 import { ShareCourseDialog } from "@/components/ShareCourseDialog";
 import { Switch } from "@/components/ui/switch";
 import { SidebarToggleButton } from "@/components/SidebarToggleButton";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+
 
 export default function CourseViewer({
   course,
@@ -610,7 +612,7 @@ export default function CourseViewer({
                   courseTitle={course.courseTitle}
                   courseDescription={course.courseDescription}
                   courseThumbnail={courseImageUrl}
-                  courseSlug={courseId ? `${(course as Course & { slug?: string }).slug || courseId}` : ""}
+                  courseSlug={courseId ? ((course as Course & { slug?: string }).slug || `${slugify(course.courseTitle)}-${courseId}`) : ""}
                 />
               </>
             ) : (

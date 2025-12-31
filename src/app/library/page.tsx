@@ -23,7 +23,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarToggleButton } from "@/components/SidebarToggleButton";
@@ -367,7 +367,7 @@ export default function LibraryPage() {
           courseTitle={selectedCourse.title}
           courseDescription={selectedCourse.description}
           courseThumbnail={selectedCourse.courseThumbnail}
-          courseSlug={selectedCourse.slug || selectedCourse.id}
+          courseSlug={selectedCourse.slug || `${slugify(selectedCourse.title)}-${selectedCourse.id}`}
           trigger={<span className="hidden" />} // Hidden trigger since we control it via open prop
         />
       )}

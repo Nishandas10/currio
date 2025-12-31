@@ -39,7 +39,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const course = data.courseData as Course;
   const title = course.courseTitle || "Currio Course";
   const description = course.courseDescription || "Learn with Currio";
-  const thumbnail = data.courseThumbnail || "https://currio.co/opengraph-image.png"; // Fallback image
+  
+  let thumbnail = data.courseThumbnail;
+  // Ensure thumbnail is a valid absolute URL (not base64 or relative)
+  if (!thumbnail || !thumbnail.startsWith("http")) {
+    thumbnail = "https://currio.co/opengraph-image.png";
+  }
 
   return {
     title: `${title} | Currio`,
@@ -47,6 +52,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: title,
       description: description,
+      url: `https://currio.co/course/${courseIdSlug}`,
+      siteName: "Currio",
       images: [
         {
           url: thumbnail,

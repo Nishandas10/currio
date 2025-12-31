@@ -255,8 +255,12 @@ export default function ClientPage({ params }: PageProps) {
 
       // Persist the prompt so we can resume if the page is reloaded (for both guests and auth users)
       try {
+        // IMPORTANT: other components (e.g. CourseViewer) treat the presence of this key as a boolean flag via
+        //   !!localStorage.getItem(key)
+        // If this write fails (e.g. storage blocked), guest thumbnail generation will never kick off.
+        localStorage.setItem(guestInProgressKey, "1");
         localStorage.setItem(
-          guestInProgressKey,
+          `${guestInProgressKey}:meta`,
           JSON.stringify({ prompt, startedAt: Date.now() })
         );
       } catch {
@@ -297,11 +301,18 @@ export default function ClientPage({ params }: PageProps) {
         let promptToUse: string | undefined;
 
         // 1. Try localStorage first
-        const stored = localStorage.getItem(guestInProgressKey);
+        // Prefer the structured meta key; fall back to legacy JSON stored at the base key.
+        const storedMeta = localStorage.getItem(`${guestInProgressKey}:meta`);
+        const storedLegacy = localStorage.getItem(guestInProgressKey);
+        const stored = storedMeta ?? storedLegacy;
         if (stored) {
-          const parsed = JSON.parse(stored) as { prompt?: string };
-          if (parsed?.prompt) {
-            promptToUse = parsed.prompt;
+          try {
+            const parsed = JSON.parse(stored) as { prompt?: string };
+            if (parsed?.prompt) {
+              promptToUse = parsed.prompt;
+            }
+          } catch {
+            // If stored is the simple flag ("1"), ignore.
           }
         }
 

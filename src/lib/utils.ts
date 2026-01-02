@@ -56,3 +56,15 @@ export function slugify(text: string) {
     .replace(/[^\w\-]+/g, "") // Remove all non-word chars
     .replace(/\-\-+/g, "-"); // Replace multiple - with single -
 }
+
+export function getCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift();
+}
+
+export function deleteCookie(name: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+}

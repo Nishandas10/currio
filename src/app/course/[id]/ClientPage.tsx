@@ -23,6 +23,7 @@ import { doc, onSnapshot, getDoc } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getCookie, deleteCookie } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -73,7 +74,10 @@ export default function ClientPage({ params }: PageProps) {
     const isCreating = (() => {
       if (prompt) return true;
       try {
-        return !!localStorage.getItem(`guest_generation_in_progress:${courseId}`);
+        if (localStorage.getItem(`guest_generation_in_progress:${courseId}`)) return true;
+        // Check cookie as fallback for mobile redirects
+        const tempId = getCookie("tempCourseId");
+        return tempId === courseId;
       } catch {
         return false;
       }
@@ -149,11 +153,12 @@ export default function ClientPage({ params }: PageProps) {
       
       return response;
     },
-    onFinish: async ({ object }) => {
+      onFinish: async ({ object }) => {
       if (object?.courseTitle) {
         // Generation finished; clear any persisted "in progress" flag.
         try {
           localStorage.removeItem(guestInProgressKey);
+          deleteCookie("tempCourseId");
         } catch {
           // ignore
         }
@@ -420,27 +425,30 @@ export default function ClientPage({ params }: PageProps) {
                 const res = await fetch(`/api/courses/${courseId}/redis`);
                 if (res.ok) {
                   const redisCourse = await res.json();
-                  const course = {
-                    ...redisCourse,
-                    courseThumbnail:
-                      redisCourse.courseImage || redisCourse.courseThumbnail,
-                  };
-                  setLoadedCourse(course);
+                  // Only load if it's a valid course (has modules). If it's just meta (prompt), let resumeGeneration handle it.
+                  if (redisCourse.modules && redisCourse.modules.length > 0) {
+                    const course = {
+                      ...redisCourse,
+                      courseThumbnail:
+                        redisCourse.courseImage || redisCourse.courseThumbnail,
+                    };
+                    setLoadedCourse(course);
 
-                  // If we found it in Redis but not Firestore, and we are logged in,
-                  // we should transfer it to the user so it persists.
-                  if (user && user.uid && transferAttemptedRef.current !== courseId) {
-                    transferAttemptedRef.current = courseId;
-                    console.log("Found guest course in Redis, transferring to user...", courseId);
-                    transferGuestCourseToUser(courseId, user.uid)
-                      .then((result) => {
-                        if (result) {
-                          console.log("Transfer successful, new slug:", result);
-                        }
-                      })
-                      .catch((err) => {
-                        console.error("Transfer failed:", err);
-                      });
+                    // If we found it in Redis but not Firestore, and we are logged in,
+                    // we should transfer it to the user so it persists.
+                    if (user && user.uid && transferAttemptedRef.current !== courseId) {
+                      transferAttemptedRef.current = courseId;
+                      console.log("Found guest course in Redis, transferring to user...", courseId);
+                      transferGuestCourseToUser(courseId, user.uid)
+                        .then((result) => {
+                          if (result) {
+                            console.log("Transfer successful, new slug:", result);
+                          }
+                        })
+                        .catch((err) => {
+                          console.error("Transfer failed:", err);
+                        });
+                    }
                   }
                 }
               } catch (e) {
@@ -469,12 +477,15 @@ export default function ClientPage({ params }: PageProps) {
                 const res = await fetch(`/api/courses/${courseId}/redis`);
                 if (res.ok) {
                   const redisCourse = await res.json();
-                  const course = {
-                    ...redisCourse,
-                    courseThumbnail:
-                      redisCourse.courseImage || redisCourse.courseThumbnail,
-                  };
-                  setLoadedCourse(course);
+                  // Only load if it's a valid course (has modules). If it's just meta (prompt), let resumeGeneration handle it.
+                  if (redisCourse.modules && redisCourse.modules.length > 0) {
+                    const course = {
+                      ...redisCourse,
+                      courseThumbnail:
+                        redisCourse.courseImage || redisCourse.courseThumbnail,
+                    };
+                    setLoadedCourse(course);
+                  }
                 }
               } catch (e) {
                 console.warn("Failed to load from Redis fallback:", e);

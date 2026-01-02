@@ -10,7 +10,16 @@ export async function GET(
 
   try {
     const redis = Redis.fromEnv();
-    const course = await redis.get(`course:${courseId}`);
+    let course = await redis.get(`course:${courseId}`);
+
+    if (!course) {
+      // Fallback: Check for meta key (prompt/searchQuery) if full course is missing
+      // This happens if generation was interrupted (e.g. mobile redirect)
+      const meta = await redis.get(`course:meta:${courseId}`);
+      if (meta) {
+        course = meta;
+      }
+    }
 
     if (!course) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });

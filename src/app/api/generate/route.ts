@@ -311,6 +311,7 @@ export async function POST(req: Request) {
     // SOLUTION: Base64 encode the JSON string to ensure it's safe for headers.
     const headers: Record<string, string> = {
       "x-course-id": courseId,
+      "Set-Cookie": `tempCourseId=${courseId}; Path=/; Secure; SameSite=Lax; Max-Age=3600`,
     };
 
     if (searchResults.length > 0) {
